@@ -1,0 +1,41 @@
+<%- include("includes/header", { title: "Shared with me" }) %>
+
+    <div class="container" style="margin-top: 50px; margin-bottom: 50px;">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Shared With Me</h2>
+                <% sharedLinks.forEach(function(link) { %>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <%= link.file.name %>
+                            </h5>
+
+                            <% if (link.projectName) { %>
+                                <p class="card-text">
+                                    <strong>Project Name:</strong>
+                                    <%= link.projectName %>
+                                </p>
+                                <% } %>
+
+                                    <% if (link.uploadedBy) { %>
+                                        <p class="card-text">
+                                            <strong>Uploaded by:</strong>
+                                            <%= link.uploadedBy.name %> (
+                                                <%= link.uploadedBy.email %>)
+                                        </p>
+                                        <% } else { %>
+                                            <p class="card-text">
+                                                <strong>Uploaded by:</strong> Unknown user
+                                            </p>
+                                            <% } %>
+
+                                                <a href="/DownloadFile/<%= link.file._id %>" class="btn btn-success">Download</a>
+                        </div>
+                    </div>
+                    <% }); %>
+            </div>
+        </div>
+    </div>
+
+    <%- include("includes/footer") %>

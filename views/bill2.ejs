@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing Form (Fixed Items)</title>
+    <style>
+        /* Basic styling for a clean, modern look */
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .billing-form-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .item-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .item-row span {
+            flex: 3;
+            font-size: 14px;
+        }
+        
+        .item-row input {
+            flex: 1;
+        }
+        
+        .total-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        /* Print-specific styling */
+        
+        @media print {
+            body {
+                background-color: white;
+                display: block;
+            }
+            .billing-form-container {
+                box-shadow: none;
+                border: none;
+                width: 100%;
+                max-height: none;
+                padding: 0;
+            }
+            button {
+                display: none;
+            }
+            input {
+                border: none;
+                background-color: transparent;
+                pointer-events: none;
+            }
+            input[readonly] {
+                font-weight: bold;
+            }
+            h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="billing-form-container" id="billing-info">
+        <h2>Billing Information</h2>
+        <form id="fixed-billing-form" method="post" onsubmit="submitFixedBillingForm(event)">
+            <!-- Invoice Number (Auto-generated) -->
+            <label for="invoice-number">Invoice Number:</label>
+            <input type="text" name="invoice_number" id="invoice-number" readonly><br>
+
+            <!-- Customer Name -->
+            <label for="customer_name">Customer Name:</label>
+            <input type="text" name="customer_name" required><br>
+
+            <!-- Customer Email -->
+            <label for="customer_email">Customer Email:</label>
+            <input type="email" name="customer_email" required><br>
+
+            <!-- Fixed Items -->
+            <div id="fixed-items-container">
+                <div class="item-row">
+                    <span>1) Earth excavation in hard soil for foundation trenches, including supplying of all materials, labours, etc.</span>
+                    <input type="number" name="items[0][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[0][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>2) Bed concrete of 1:4:8 PCC with 1½” gr. Jelly including materials, labours, mixing, laying, curing, etc.</span>
+                    <input type="number" name="items[1][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[1][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>3) Foundation of dressed Granite stone masonry in C.M. 1:5 including materials, labours, curing, etc.</span>
+                    <input type="number" name="items[2][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[2][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>4) Earth filling with available earth, including filling, watering, consolidating, etc.</span>
+                    <input type="number" name="items[3][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[3][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>5) 1:2:4 RCC work with ¾” gr. jelly reinforced with torsteel, including materials, labour, curing, etc.</span>
+                    <input type="number" name="items[4][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[4][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>6) Superstructure of 9" Laterite wall masonry in C.M 1:6 including supplying of all materials, labours, scaffolding and curing etc. complete.</span>
+                    <input type="number" name="items[5][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[5][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>7) Inside wall plastering in C.M 1:6 with sieved sand, 12mm thick and top to be finished smooth with lime slurry including supplying of all materials, labours, scaffolding and curing etc. complete.</span>
+                    <input type="number" name="items[6][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[6][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>8) Ceiling plastering in C.M 1:3 with sieved sand, 12mm thick and top to be finished smooth with lime slurry including supplying of all materials, labours, scaffolding and curing etc. complete.</span>
+                    <input type="number" name="items[7][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[7][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <div class="item-row">
+                    <span>9) Outside wall plastering in C.M 1:6 with sieved sand, 12mm thick and top to be finished smooth with lime slurry including supplying of all materials, labours, scaffolding and curing etc. complete.</span>
+                    <input type="number" name="items[8][quantity]" placeholder="Qty" required oninput="updateFixedTotal()">
+                    <input type="number" name="items[8][price]" placeholder="Price (₹)" required oninput="updateFixedTotal()">
+                </div>
+                <!-- Add more items here as needed -->
+            </div>
+
+            <!-- Total -->
+            <div class="total-container">
+                <label>Total:</label>
+                <input type="number" name="total" id="fixed-total" readonly>
+            </div><br>
+
+            <button type="submit">Submit Billing Information</button>
+        </form>
+
+        <button onclick="printBillingInfo()">Print Billing Information</button>
+    </div>
+
+    <script>
+        // Generate a dynamic invoice number
+        document.getElementById('invoice-number').value = `INV-${Date.now()}`;
+
+        // Update total dynamically
+        function updateFixedTotal() {
+            const itemRows = document.querySelectorAll('#fixed-items-container .item-row');
+            let total = 0;
+
+            itemRows.forEach((row, index) => {
+                const quantityInput = document.querySelector(`input[name="items[${index}][quantity]"]`);
+                const priceInput = document.querySelector(`input[name="items[${index}][price]"]`);
+
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+
+                total += quantity * price;
+            });
+
+            document.getElementById('fixed-total').value = total.toFixed(2);
+        }
+
+        // Submit billing form
+        function submitFixedBillingForm(event) {
+            event.preventDefault();
+            alert('Billing information submitted successfully!');
+        }
+
+        // Print billing information
+        function printBillingInfo() {
+            const printContents = document.getElementById('billing-info').innerHTML;
+            const originalContents = document.body.innerHTML;
+
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
