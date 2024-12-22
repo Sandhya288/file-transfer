@@ -567,6 +567,175 @@ http.listen(3000, function() {
           }
         });
 
+        app.post("/notes", async function (request, result) {
+          try {
+            // Retrieve form fields
+            var money = request.fields.money;
+            var name = request.fields.name;
+            var paid = request.fields.paid;
+
+            // Ensure the user is logged in
+            if (!request.session.user) {
+              request.status = "error";
+              request.message = "Unauthorized: Please log in.";
+              return result.render("Notes", {
+                request: request,
+                notes: [],
+              });
+            }
+
+            // Validate required fields
+            if (!money || !name || !paid) {
+              request.status = "error";
+              request.message = "All fields are required.";
+              const notes = await database
+                .collection("notes")
+                .find({
+                  userId: request.session.user._id,
+                })
+                .toArray(); // Fetch existing notes
+              return result.render("Notes", {
+                request: request,
+                notes: notes,
+              });
+            }
+
+            // Insert note data into the database
+            await database.collection("notes").insertOne({
+              userId: request.session.user._id, // Use the logged-in user's ID
+              money: parseFloat(money), // Ensure money is a number
+              name: name.trim(), // Trim extra spaces
+              paid: parseFloat(paid), // Ensure paid is a number
+              createdAt: new Date(), // Add a timestamp
+            });
+
+            // Fetch updated notes list in descending order by creation date
+            const notes = await database
+              .collection("notes")
+              .find({
+                userId: request.session.user._id,
+              })
+              .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
+              .toArray();
+
+            // Success response
+            request.status = "success";
+            request.message = "Note submitted successfully.";
+            result.render("Notes", {
+              request: request,
+              notes: notes, // Pass the updated notes list
+            });
+          } catch (error) {
+            console.error("Error processing note:", error);
+            request.status = "error";
+            request.message = "An unexpected error occurred.";
+            const notes = await database
+              .collection("notes")
+              .find({
+                userId: request.session.user._id,
+              })
+              .toArray(); // Fetch existing notes
+            result.render("Notes", { request: request, notes: notes });
+          }
+        });
+
+
+        app.get("/sharedpayments", async (request, response) => {
+          try {
+            if (!request.session.user) {
+              return response.redirect("/login");
+            }
+
+            const userId = new ObjectId(request.session.user._id);
+
+            // Fetch payments shared with the logged-in user
+            const sharedWithMe = await database
+              .collection("payment_share")
+              .aggregate([
+                {
+                  $match: { "sharedWith._id": userId },
+                },
+                {
+                  $lookup: {
+                    from: "payments",
+                    localField: "paymentId",
+                    foreignField: "_id",
+                    as: "paymentDetails",
+                  },
+                },
+                { $unwind: "$paymentDetails" },
+                {
+                  $project: {
+                    _id: 1,
+                    paymentId: 1,
+                    sharedBy: 1,
+                    sharedWith: 1,
+                    createdAt: 1,
+                    "paymentDetails.constructorName": 1,
+                    "paymentDetails.location": 1,
+                    "paymentDetails.projectSiteName": 1,
+                    "paymentDetails.modeOfPayment": 1,
+                    "paymentDetails.date": 1,
+                    "paymentDetails.amount": 1,
+                  },
+                },
+              ])
+              .toArray();
+
+            // Fetch payments shared by the logged-in user
+            const sharedByMe = await database
+              .collection("payment_share")
+              .aggregate([
+                {
+                  $match: { "sharedBy._id": userId },
+                },
+                {
+                  $lookup: {
+                    from: "payments",
+                    localField: "paymentId",
+                    foreignField: "_id",
+                    as: "paymentDetails",
+                  },
+                },
+                { $unwind: "$paymentDetails" },
+                {
+                  $project: {
+                    _id: 1,
+                    paymentId: 1,
+                    sharedBy: 1,
+                    sharedWith: 1,
+                    createdAt: 1,
+                    "paymentDetails.constructorName": 1,
+                    "paymentDetails.location": 1,
+                    "paymentDetails.projectSiteName": 1,
+                    "paymentDetails.modeOfPayment": 1,
+                    "paymentDetails.date": 1,
+                    "paymentDetails.amount": 1,
+                  },
+                },
+              ])
+              .toArray();
+
+            // Render the page with both data sets
+            response.render("sharedpayments", {
+              sharedWithMe,
+              sharedByMe,
+              request,
+            });
+          } catch (error) {
+            console.error("Error fetching shared payments:", error);
+            response.render("sharedpayments", {
+              sharedWithMe: [],
+              sharedByMe: [],
+              request,
+            });
+          }
+        });
+
+
+
+
+
 
         let materials = []; // In-memory materials array for simplicity
 
@@ -1264,6 +1433,12 @@ http.listen(3000, function() {
             result.render("Register", {
                 "request": request
             });
+        });
+
+        app.get("/sharedpayments", function (request, result) {
+          result.render("sharedpayments", {
+            request: request,
+          });
         });
 
         // home page
