@@ -1,3 +1,6 @@
+<%- include("includes/header", {
+    "title": "Login"
+}) %>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,7 +8,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -69,29 +71,25 @@
 </head>
 
 <body>
-    <div id="app" class="container">
+    <div class="container">
         <h1>Payment Form</h1>
-        <form @submit.prevent="submitPayment">
-            <input type="text" v-model="constructorName" placeholder="Constructor Name" required />
-            <input type="text" v-model="location" placeholder="Location" required />
-            <input type="text" v-model="projectSiteName" placeholder="Project Site Name" required />
-            <select v-model="modeOfPayment" required>
+        <form method="POST" action="/payment">
+            <input type="text" name="constructorName" placeholder="Constructor Name" required />
+            <input type="text" name="location" placeholder="Location" required />
+            <input type="text" name="projectSiteName" placeholder="Project Site Name" required />
+            <select name="modeOfPayment" required>
                 <option value="" disabled>Select Mode of Payment</option>
                 <option value="Credit Card">Credit Card</option>
                 <option value="Debit Card">Debit Card</option>
                 <option value="Net Banking">Net Banking</option>
                 <option value="Cash">Cash</option>
             </select>
-            <input type="date" v-model="date" required />
-            <input type="number" v-model="amount" placeholder="Amount" required />
+            <input type="date" name="date" required />
+            <input type="number" name="amount" placeholder="Amount" required />
             <button type="submit">Submit Payment</button>
         </form>
-        <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
-        <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     </div>
-
-    <script src="/path/to/vue.js"></script>
-    <script src="app.js"></script>
 </body>
 
 </html>
+<%- include("includes/footer") %>
