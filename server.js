@@ -23,6 +23,7 @@ var bcrypt = require("bcrypt");
 // to store files
 var fileSystem = require("fs");
 
+
 // to start the session
 var session = require("express-session");
 app.use(session({
@@ -382,63 +383,57 @@ http.listen(3000, function() {
             });
         });
 
-        app.post("/payment", async function(req, res) {
-            // Check if the user is logged in
+        const { ObjectId } = require('mongodb');
 
-
-            // Extract payment data from the request body
-            const { constructorName, location, projectSiteName, modeOfPayment, date, amount } = req.body;
-
-            // Validate the input
-            if (!constructorName || !location || !projectSiteName || !modeOfPayment || !date || !amount) {
-                return res.status(400).send("All payment details are required.");
-            }
-
+        app.post('/payment', async(req, res) => {
             try {
-                // Prepare the payment record
-                const paymentRecord = {
-                    userEmail: req.session.user.email, // Associate the payment with the logged-in user's email
-                    constructorName,
-                    location,
-                    projectSiteName,
-                    modeOfPayment,
-                    date: new Date(date), // Ensure the date is stored in the correct format
-                    amount: parseFloat(amount) // Convert amount to a number
+                // Check if user is logged in
+                if (!req.session.user) {
+                    return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+                }
+
+                // Validate body data
+                const { amount, description } = req.body;
+                if (!amount || !description) {
+                    return res.status(400).json({ message: 'Amount and description are required.' });
+                }
+
+                const userId = req.session.user._id;
+
+                const paymentData = {
+                    _id: new ObjectId(),
+                    amount,
+                    description,
+                    createdAt: new Date(),
                 };
 
-                // Insert the payment record into the `payments` collection
-                const result = await database.collection("payments").insertOne(paymentRecord);
+                // Add payment data to user's record
+                const result = await database.collection("users").updateOne({ _id: ObjectId(userId) }, { $push: { payments: paymentData } });
 
-                // Respond with success
-                res.status(201).send({ message: "Payment record added successfully!", paymentId: result.insertedId });
+                if (result.modifiedCount === 0) {
+                    throw new Error("Failed to update payment data.");
+                }
+
+                res.status(201).json({ message: 'Payment recorded successfully.', payment: paymentData });
             } catch (error) {
-                console.error("Error adding payment record:", error);
-                res.status(500).send("An error occurred while saving the payment record.");
+                console.error('Error in /payment route:', error);
+                res.status(500).json({ message: 'Internal server error.', error: error.message });
             }
         });
 
+        app.use(bodyParser.json());
 
-        app.get("/payment", async function(req, res) {
-            // Check if the user is logged in
-
-
-            try {
-                // Query the `payments` collection for entries related to the logged-in user
-                const payments = await database.collection("payments").find({
-                    "userEmail": req.session.user.email, // Match based on the user's email
-                }).toArray();
-
-                // Render the payment page with the retrieved data
-                res.render("payment", {
-                    mainURL: app.locals.mainURL, // Pass the main URL
-                    payments: payments, // Pass the payments data to the view
-                    request: req, // Pass the request object for dynamic rendering
-                });
-            } catch (error) {
-                console.error("Error fetching payments:", error);
-                res.status(500).send("An error occurred while fetching payments.");
+        app.get('/payment', (req, res) => {
+            if (!req.session.user) {
+                return res.redirect('/Login');
             }
+
+            res.render('payment', {
+                mainURL: app.locals.mainURL, // Pass the main URL or other required data
+                request: req // Optionally pass the request object for dynamic rendering
+            });
         });
+
 
 
         app.post("/DeleteLink", async function(request, result) {
@@ -740,16 +735,15 @@ http.listen(3000, function() {
         // upload new file
         app.post("/UploadFile", async function(request, result) {
             if (request.session.user) {
-
-                var user = await database.collection("users").findOne({
+                const user = await database.collection("users").findOne({
                     "_id": ObjectId(request.session.user._id)
                 });
 
+                const folder = request.fields.folder || ""; // Folder name (empty if root)
+                const folderPath = `public/uploads/${user.email}/${folder}`;
+
                 if (request.files.file.size > 0) {
-
-                    const _id = request.fields._id;
-
-                    var uploadedObj = {
+                    const uploadedObj = {
                         "_id": ObjectId(),
                         "size": request.files.file.size, // in bytes
                         "name": request.files.file.name,
@@ -758,19 +752,20 @@ http.listen(3000, function() {
                         "createdAt": new Date().getTime()
                     };
 
-                    var filePath = "public/uploads/" + user.email + "/" + new Date().getTime() + "-" + request.files.file.name;
+                    const filePath = `${folderPath}/${new Date().getTime()}-${request.files.file.name}`;
                     uploadedObj.filePath = filePath;
 
-                    if (!fileSystem.existsSync("public/uploads/" + user.email)) {
-                        fileSystem.mkdirSync("public/uploads/" + user.email);
+
+
+
+                    if (!fileSystem.existsSync(folderPath)) {
+                        fileSystem.mkdirSync(folderPath, { recursive: true });
                     }
 
-                    // Read the file
                     fileSystem.readFile(request.files.file.path, function(err, data) {
                         if (err) throw err;
                         console.log('File read!');
 
-                        // Write the file
                         fileSystem.writeFile(filePath, data, async function(err) {
                             if (err) throw err;
                             console.log('File written!');
@@ -785,31 +780,80 @@ http.listen(3000, function() {
 
                             request.session.status = "success";
                             request.session.message = "File has been uploaded.";
-
                             result.redirect("/MyUploads");
                         });
 
-                        // Delete the file
                         fileSystem.unlink(request.files.file.path, function(err) {
                             if (err) throw err;
-                            console.log('File deleted!');
+                            console.log('Temporary file deleted!');
                         });
                     });
-
                 } else {
-                    request.status = "error";
-                    request.message = "Please select valid image.";
-
-                    result.render("MyUploads", {
-                        "request": request
-                    });
+                    request.session.status = "error";
+                    request.session.message = "Please select a valid file.";
+                    result.redirect("/MyUploads");
                 }
+            } else {
+                result.redirect("/Login");
+            }
+        });
+        app.post("/MoveFileToFolder", (req, res) => {
+            const { fileId, fileName, folderName } = req.body;
+            const currentPath = path.join(__dirname, "uploads", fileName);
+            const folderPath = path.join(__dirname, "uploads", folderName);
 
-                return false;
+            // Ensure folder exists
+            if (!fs.existsSync(folderPath)) {
+                fs.mkdirSync(folderPath, { recursive: true });
             }
 
-            result.redirect("/Login");
+            const newPath = path.join(folderPath, fileName);
+
+            // Move the file
+            fs.rename(currentPath, newPath, (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send({ success: false, message: "File move failed" });
+                }
+                res.send({ success: true });
+            });
         });
+
+        app.get("/PreviewFile/:fileId", async(req, res) => {
+            try {
+                const fileId = req.params.fileId;
+                const file = await database.collection("files").findOne({ "_id": new ObjectId(fileId) });
+
+                if (!file) {
+                    return res.status(404).send("File not found");
+                }
+
+                const filePath = path.join(__dirname, 'uploads', file.path); // Adjust path based on your file storage setup
+
+                const fileType = file.type;
+                res.setHeader('Content-Type', fileType);
+
+                if (fileType.startsWith("image/")) {
+                    // If image, send as image
+                    res.sendFile(filePath);
+                } else if (fileType === "application/pdf") {
+                    // If PDF, send as PDF
+                    res.sendFile(filePath);
+                } else if (fileType.startsWith("text/")) {
+                    // If text, read the file and send as text
+                    const content = fs.readFileSync(filePath, 'utf-8');
+                    res.send(content);
+                } else {
+                    res.status(415).send("Unsupported file type");
+                }
+            } catch (error) {
+                console.error(error);
+                res.status(500).send("Server error");
+            }
+        });
+
+
+
 
         // logout the user
         app.get("/Logout", function(request, result) {
@@ -861,51 +905,67 @@ http.listen(3000, function() {
 
         // register the user
         app.post("/Register", async function(request, result) {
+            try {
+                var name = request.fields.name;
+                var email = request.fields.email;
+                var password = request.fields.password;
+                var reset_token = "";
+                var isVerified = true;
+                var verification_token = new Date().getTime();
 
-            var name = request.fields.name;
-            var email = request.fields.email;
-            var password = request.fields.password;
-            var reset_token = "";
-            var isVerified = true;
-            var verification_token = new Date().getTime();
+                // Check if the user already exists
+                var user = await database.collection("users").findOne({
+                    email: email,
+                });
 
-            var user = await database.collection("users").findOne({
-                "email": email
-            });
+                if (user == null) {
+                    // Hash the password before saving
+                    bcrypt.hash(password, 10, async function(error, hash) {
+                        if (error) {
+                            console.error("Error hashing password:", error);
+                            request.status = "error";
+                            request.message = "An error occurred while processing your request.";
+                            return result.render("Register", { request: request });
+                        }
 
-            if (user == null) {
-                bcrypt.hash(password, 10, async function(error, hash) {
-                    await database.collection("users").insertOne({
-                        "name": name,
-                        "email": email,
-                        "password": hash,
-                        "reset_token": reset_token,
-                        "uploaded": [],
+                        // Insert the new user with an empty payments array
+                        await database.collection("users").insertOne({
+                            name: name,
+                            email: email,
+                            password: hash,
+                            reset_token: reset_token,
+                            uploaded: [],
+                            sharedWithMe: [],
+                            isVerified: isVerified,
+                            verification_token: verification_token,
+                            payments: [], // Empty payments array
+                        });
 
-                        "sharedWithMe": [],
-                        "isVerified": isVerified,
-                        "verification_token": verification_token
-                    }, async function(error, data) {
-
+                        // Success response
                         request.status = "success";
                         request.message = "Signed up successfully. You can login now.";
 
                         result.render("Register", {
-                            "request": request
+                            request: request,
                         });
-
                     });
-                });
-            } else {
-                request.status = "error";
-                request.message = "Email already exist.";
+                } else {
+                    // User already exists
+                    request.status = "error";
+                    request.message = "Email already exists.";
 
-                result.render("Register", {
-                    "request": request
-                });
+                    result.render("Register", {
+                        request: request,
+                    });
+                }
+            } catch (error) {
+                console.error("Error during registration:", error);
+                request.status = "error";
+                request.message = "An unexpected error occurred.";
+                result.render("Register", { request: request });
             }
-            result.redirect("/Login");
         });
+
 
         // Backend Route to Render Billing Page
         app.get("/billing", (req, res) => {

@@ -4,15 +4,24 @@
         <%- include("includes/ResponseAlert", { "request": request }) %>
 
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-8">
                     <h1>My Uploads</h1>
                 </div>
                 <div class="col-md-4 text-right">
-                    <button class="btn btn-primary" onclick="selectFileForUpload();">Upload</button>
+                    <button class="btn btn-primary" onclick="selectFileForUpload();">Upload File</button>
                 </div>
             </div>
 
-            <div class="row">
+            <!-- Folder Creation Form -->
+            <form action="<%= request.mainURL %>/CreateFolder" method="POST">
+                <div class="form-group mt-4">
+                    <label for="folderName">Create New Folder:</label>
+                    <input type="text" name="folderName" id="folderName" class="form-control" placeholder="Enter folder name" required>
+                </div>
+                <button type="submit" class="btn btn-success">Create Folder</button>
+            </form>
+
+            <div class="row mt-4">
                 <% uploaded.forEach(function(singleFile) { %>
                     <div class="col-md-4 my-3">
                         <div class="card">
@@ -37,7 +46,7 @@
         <input type="file" name="file" id="input-file-upload" style="display: none;" onchange="confirmUpload();" required />
     </form>
 
-    <!-- Modal -->
+    <!-- Modal for Viewing Files -->
     <div class="modal fade" id="viewFileModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -95,6 +104,8 @@
                 }
             });
         }
+
+
 
         function viewFile(self) {
             const _id = self.getAttribute("data-id");
