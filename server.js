@@ -357,7 +357,7 @@ http.listen(3000, function() {
         });
 
 
-        
+
 
 
 
@@ -386,154 +386,171 @@ http.listen(3000, function() {
 
         const { ObjectId } = require('mongodb');
 
-       app.post("/payment", async function (request, result) {
-         try {
-           // Retrieve form fields
-           var constructorName = request.fields.constructorName;
-           var location = request.fields.location;
-           var projectSiteName = request.fields.projectSiteName;
-           var modeOfPayment = request.fields.modeOfPayment;
-           var date = request.fields.date;
-           var amount = request.fields.amount;
+        app.post("/payment", async function(request, result) {
+            try {
+                // Retrieve form fields
+                var constructorName = request.fields.constructorName;
+                var location = request.fields.location;
+                var projectSiteName = request.fields.projectSiteName;
+                var modeOfPayment = request.fields.modeOfPayment;
+                var date = request.fields.date;
+                var amount = request.fields.amount;
 
-           // Ensure the user is logged in
-           if (!request.session.user) {
-             request.status = "error";
-             request.message = "Unauthorized: Please log in.";
-             return result.render("Payment", {
-               request: request,
-               payments: [],
-             });
-           }
+                // Ensure the user is logged in
+                if (!request.session.user) {
+                    request.status = "error";
+                    request.message = "Unauthorized: Please log in.";
+                    return result.render("Payment", {
+                        request: request,
+                        payments: [],
+                    });
+                }
 
-           // Validate required fields
-           if (
-             !constructorName ||
-             !location ||
-             !projectSiteName ||
-             !modeOfPayment ||
-             !date ||
-             !amount
-           ) {
-             request.status = "error";
-             request.message = "All fields are required.";
-             const payments = await database
-               .collection("payments")
-               .find({
-                 userId: request.session.user._id,
-               })
-               .toArray(); // Fetch existing payments
-             return result.render("Payment", {
-               request: request,
-               payments: payments,
-             });
-           }
+                // Validate required fields
+                if (!constructorName ||
+                    !location ||
+                    !projectSiteName ||
+                    !modeOfPayment ||
+                    !date ||
+                    !amount
+                ) {
+                    request.status = "error";
+                    request.message = "All fields are required.";
+                    const payments = await database
+                        .collection("payments")
+                        .find({
+                            userId: request.session.user._id,
+                        })
+                        .toArray(); // Fetch existing payments
+                    return result.render("Payment", {
+                        request: request,
+                        payments: payments,
+                    });
+                }
 
-           // Insert payment data into the database
-           await database.collection("payments").insertOne({
-             userId: request.session.user._id, // Use the logged-in user's ID
-             constructorName: constructorName,
-             location: location,
-             projectSiteName: projectSiteName,
-             modeOfPayment: modeOfPayment,
-             date: new Date(date), // Convert to Date object
-             amount: parseFloat(amount), // Ensure amount is a number
-             createdAt: new Date(), // Add a timestamp
-           });
+                // Insert payment data into the database
+                await database.collection("payments").insertOne({
+                    userId: request.session.user._id, // Use the logged-in user's ID
+                    constructorName: constructorName,
+                    location: location,
+                    projectSiteName: projectSiteName,
+                    modeOfPayment: modeOfPayment,
+                    date: new Date(date), // Convert to Date object
+                    amount: parseFloat(amount), // Ensure amount is a number
+                    createdAt: new Date(), // Add a timestamp
+                });
 
-           // Fetch updated payment list in descending order by creation date
-           const payments = await database
-             .collection("payments")
-             .find({
-               userId: request.session.user._id,
-             })
-             .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
-             .toArray();
+                // Fetch updated payment list in descending order by creation date
+                const payments = await database
+                    .collection("payments")
+                    .find({
+                        userId: request.session.user._id,
+                    })
+                    .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
+                    .toArray();
 
-           // Success response
-           request.status = "success";
-           request.message = "Payment submitted successfully.";
-           result.render("Payment", {
-             request: request,
-             payments: payments, // Pass the updated payment list
-           });
-         } catch (error) {
-           console.error("Error processing payment:", error);
-           request.status = "error";
-           request.message = "An unexpected error occurred.";
-           const payments = await database
-             .collection("payments")
-             .find({
-               userId: request.session.user._id,
-             })
-             .toArray(); // Fetch existing payments
-           result.render("Payment", { request: request, payments: payments });
-         }
-       });
+                // Success response
+                request.status = "success";
+                request.message = "Payment submitted successfully.";
+                result.render("Payment", {
+                    request: request,
+                    payments: payments, // Pass the updated payment list
+                });
+            } catch (error) {
+                console.error("Error processing payment:", error);
+                request.status = "error";
+                request.message = "An unexpected error occurred.";
+                const payments = await database
+                    .collection("payments")
+                    .find({
+                        userId: request.session.user._id,
+                    })
+                    .toArray(); // Fetch existing payments
+                result.render("Payment", { request: request, payments: payments });
+            }
+        });
 
 
-       app.get("/payment", async function (request, result) {
-         try {
-           // Ensure the user is logged in
-           if (!request.session.user) {
-             request.status = "error";
-             request.message = "Unauthorized: Please log in.";
-             return result.render("Payment", {
-               request: request,
-               payments: [],
-             });
-           }
+        app.get("/payment", async function(request, result) {
+            try {
+                // Ensure the user is logged in
+                if (!request.session.user) {
+                    request.status = "error";
+                    request.message = "Unauthorized: Please log in.";
+                    return result.render("Payment", {
+                        request: request,
+                        payments: [],
+                    });
+                }
 
-           // Retrieve payments for the logged-in user in descending order by creation date
-           const payments = await database
-             .collection("payments")
-             .find({
-               userId: request.session.user._id, // Use the logged-in user's ID
-             })
-             .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
-             .toArray();
+                // Retrieve payments for the logged-in user in descending order by creation date
+                const payments = await database
+                    .collection("payments")
+                    .find({
+                        userId: request.session.user._id, // Use the logged-in user's ID
+                    })
+                    .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
+                    .toArray();
 
-           // Render the Payment page with the payment list
-           request.status = "success";
-           request.message = "Payments fetched successfully.";
-           result.render("Payment", {
-             request: request,
-             payments: payments, // Ensure `payments` is passed to the EJS template
-           });
-         } catch (error) {
-           console.error("Error fetching payments:", error);
-           request.status = "error";
-           request.message = "An unexpected error occurred.";
-           result.render("Payment", { request: request, payments: [] });
-         }
-       });
+                // Render the Payment page with the payment list
+                request.status = "success";
+                request.message = "Payments fetched successfully.";
+                result.render("Payment", {
+                    request: request,
+                    payments: payments, // Ensure `payments` is passed to the EJS template
+                });
+            } catch (error) {
+                console.error("Error fetching payments:", error);
+                request.status = "error";
+                request.message = "An unexpected error occurred.";
+                result.render("Payment", { request: request, payments: [] });
+            }
+        });
 
-       app.get("/payment/share/:id", async (request, response) => {
-         try {
-           const paymentId = request.params.id;
-           const payment = await database.collection("payments").findOne({
-             _id: new ObjectId(paymentId),
-           });
+        app.get("/payment/share/:id", async(request, response) => {
+            try {
+                const paymentId = request.params.id;
+                const payment = await database.collection("payments").findOne({
+                    _id: new ObjectId(paymentId),
+                });
 
-           if (!payment) {
-             return response
-               .status(404)
-               .json({ message: "Payment not found." });
-           }
+                if (!payment) {
+                    return response
+                        .status(404)
+                        .json({ message: "Payment not found." });
+                }
 
-           // Share logic here (e.g., generate a shareable link or email the details)
-           const shareableLink = `${request.protocol}://${request.get(
+                // Share logic here (e.g., generate a shareable link or email the details)
+                const shareableLink = `${request.protocol}://${request.get(
              "host"
            )}/payment/view/${paymentId}`;
 
-           console.log("Shareable Link:", shareableLink);
-         } catch (error) {
-           console.error("Error sharing payment:", error);
-           response
-             .status(500)
-             .json({ message: "An error occurred while sharing the payment." });
-         }
-       });
+                console.log("Shareable Link:", shareableLink);
+            } catch (error) {
+                console.error("Error sharing payment:", error);
+                response
+                    .status(500)
+                    .json({ message: "An error occurred while sharing the payment." });
+            }
+        });
+        let materials = []; // In-memory materials array for simplicity
+
+        // Add material
+
+
+
+        app.get("/materials", function(request, result) {
+            result.render("materials", {
+                "request": request
+            });
+        });
+
+        app.get("/notes", function(request, result) {
+            result.render("notes", {
+                "request": request
+            });
+        });
+
 
 
 
@@ -1117,17 +1134,17 @@ http.listen(3000, function() {
         });
 
         const paymentSchema = new mongoose.Schema({
-          userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-          }, // Reference to the user
-          constructorName: { type: String, required: true },
-          location: { type: String, required: true },
-          projectSiteName: { type: String, required: true },
-          modeOfPayment: { type: String, required: true },
-          date: { type: Date, required: true },
-          amount: { type: Number, required: true },
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true,
+            }, // Reference to the user
+            constructorName: { type: String, required: true },
+            location: { type: String, required: true },
+            projectSiteName: { type: String, required: true },
+            modeOfPayment: { type: String, required: true },
+            date: { type: Date, required: true },
+            amount: { type: Number, required: true },
         });
 
         const Bill = mongoose.model('bill', billSchema);

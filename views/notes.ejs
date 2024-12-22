@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .note-container {
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 350px;
+            text-align: center;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .note-container table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .note-container th,
+        .note-container td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        
+        .note-container th {
+            background-color: #f4f4f9;
+        }
+        
+        .note-container td {
+            background-color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="note-container">
+        <h2>Note Page</h2>
+
+        <form id="note-form" onsubmit="submitForm(event)">
+            <label for="money">Money</label>
+            <input type="number" id="money" name="money" placeholder="Enter amount" required>
+
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Enter your name" required>
+
+            <label for="paid">Paid</label>
+            <input type="number" id="paid" name="paid" placeholder="Enter Paid Amount" required>
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <div class="note">
+            <!-- Table will be populated here after submission -->
+            <table id="note-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Money</th>
+                        <th>Paid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Submitted notes will be added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function submitForm(event) {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+
+            const money = document.getElementById('money').value;
+            const name = document.getElementById('name').value;
+            const paid = document.getElementById('paid').value;
+
+            const tableBody = document.querySelector('#note-table tbody');
+
+            // Create a new row
+            const newRow = document.createElement('tr');
+
+            // Create table cells
+            const nameCell = document.createElement('td');
+            nameCell.textContent = name;
+            const moneyCell = document.createElement('td');
+            moneyCell.textContent = `₹${money}`;
+            const paidCell = document.createElement('td');
+            paidCell.textContent = `₹${paid}`;
+
+            // Append cells to the row
+            newRow.appendChild(nameCell);
+            newRow.appendChild(moneyCell);
+            newRow.appendChild(paidCell);
+
+            // Append the row to the table
+            tableBody.appendChild(newRow);
+
+            // Clear the input fields after submission
+            document.getElementById('note-form').reset();
+        }
+    </script>
+
+</body>
+
+</html>

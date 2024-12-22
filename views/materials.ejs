@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materials Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .materials-form-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 900px;
+            overflow-x: hidden;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .item-row input {
+            flex: 1;
+        }
+        
+        .item-row button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .item-row button:hover {
+            background-color: #e60000;
+        }
+        
+        .add-item-btn {
+            background-color: #008CBA;
+        }
+        
+        .add-item-btn:hover {
+            background-color: #007bb5;
+        }
+        
+        .remove-item-btn {
+            background-color: #ff4d4d;
+        }
+        
+        .remove-item-btn:hover {
+            background-color: #e60000;
+        }
+        
+        .total-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .add-item-btn {
+            background-color: #008CBA;
+        }
+        
+        .add-item-btn:hover {
+            background-color: #007bb5;
+        }
+        
+        .print-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="materials-form-container" id="materials-form-container">
+        <h2>Materials Form</h2>
+        <form id="materials-form" method="post" action="/submitMaterials" onsubmit="submitMaterialsForm(event)">
+            <label for="material-id">Material ID:</label>
+            <input type="text" name="material_id" id="material-id" readonly><br><br>
+
+
+
+            <div id="materials-container">
+                <!-- Predefined Materials -->
+                <div class="item-row">
+                    <input type="text" name="materials[][name]" value="FOUNDATION STONE" readonly>
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                    <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+                </div>
+
+                <div class="item-row">
+                    <input type="text" name="materials[][name]" value="JELLY" readonly>
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                    <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+                </div>
+
+                <div class="item-row">
+                    <input type="text" name="materials[][name]" value="CEMENT" readonly>
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                    <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+                </div>
+
+                <!-- Add more materials here in similar structure -->
+                <div class="item-row">
+                    <input type="text" name="materials[][name]" value="SAND" readonly>
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                    <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+                </div>
+
+                <!-- Add additional materials here following the same format -->
+                <div class="item-row">
+                    <input type="text" name="materials[][name]" value="LATERITE STONE" readonly>
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                    <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+                </div>
+
+                <!-- Continue for all 22 materials as required -->
+                <!-- Repeat the structure above for each material -->
+            </div>
+
+            <button type="button" class="add-item-btn" onclick="addRow()">Add Material</button>
+
+            <div class="total-container">
+                <div>
+                    <button type="submit">Submit</button>
+                </div>
+            </div>
+        </form>
+
+    </div>
+
+    <div id="materials-table-container" style="display: none;">
+        <h2>Submitted Materials</h2>
+        <table id="materials-table">
+            <thead>
+                <tr>
+                    <th>Material</th>
+                    <th>Quantity</th>
+                    <th>Percentage (%)</th>
+                    <th>Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="materials-table-body">
+                <!-- Data will be appended here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function addRow() {
+            const materialsContainer = document.getElementById('materials-container');
+            const newRow = document.createElement('div');
+            newRow.classList.add('item-row');
+            newRow.innerHTML = `
+                <input type="text" name="materials[][name]" value="NEW MATERIAL" readonly>
+                <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
+                <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
+                <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
+            `;
+            materialsContainer.appendChild(newRow);
+        }
+
+        function removeRow(button) {
+            const row = button.parentElement;
+            row.remove();
+            updateTotals(); // Recalculate total after removal
+        }
+
+        function updateTotals() {
+            let totalSum = 0;
+            const rows = document.querySelectorAll('.item-row');
+
+            rows.forEach(row => {
+                const quantity = parseFloat(row.querySelector('input[name$="[quantity]"]').value) || 0;
+                const percentage = parseFloat(row.querySelector('input[name$="[percentage]"]').value) || 0;
+                const total = row.querySelector('input[name$="[total]"]');
+                const calculatedTotal = (quantity * percentage) / 100;
+                total.value = calculatedTotal.toFixed(2);
+                totalSum += calculatedTotal;
+            });
+
+            console.log('Total Sum:', totalSum);
+        }
+
+        function submitMaterialsForm(event) {
+            event.preventDefault();
+            alert('Materials form submitted!');
+        }
+    </script>
+</body>
+
+</html>
