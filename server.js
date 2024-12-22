@@ -192,6 +192,10 @@ function recursiveSearchShared(files, query) {
 
 // start the http server
 http.listen(3000, function() {
+    const cors = require("cors");
+    const bodyParser = require("body-parser");
+    app.use(cors());
+    app.use(bodyParser.json());
     console.log("Server started at " + mainURL);
 
     // connect with mongo DB server
@@ -353,10 +357,7 @@ http.listen(3000, function() {
         });
 
 
-        const cors = require('cors');
-        const bodyParser = require('body-parser');
-        app.use(cors());
-        app.use(bodyParser.json());
+        
 
 
 
@@ -385,43 +386,64 @@ http.listen(3000, function() {
 
         const { ObjectId } = require('mongodb');
 
-        app.post('/payment', async(req, res) => {
-            try {
-                // Check if user is logged in
-                if (!req.session.user) {
-                    return res.status(401).json({ message: 'Unauthorized. Please log in.' });
-                }
+       app.post("/payment", async function (request, result) {
+         try {
+           // Retrieve form fields
+           var constructorName = request.fields.constructorName;
+           var location = request.fields.location;
+           var projectSiteName = request.fields.projectSiteName;
+           var modeOfPayment = request.fields.modeOfPayment;
+           var date = request.fields.date;
+           var amount = request.fields.amount;
 
-                // Validate body data
-                const { amount, description } = req.body;
-                if (!amount || !description) {
-                    return res.status(400).json({ message: 'Amount and description are required.' });
-                }
+           if (!request.session.user) {
+             request.status = "error";
+             request.message = "Unauthorized: Please log in.";
+             return result.render("Payment", { request: request });
+           }
 
-                const userId = req.session.user._id;
+           // Validate required fields
+           if (
+             !constructorName ||
+             !location ||
+             !projectSiteName ||
+             !modeOfPayment ||
+             !date ||
+             !amount
+           ) {
+             request.status = "error";
+             request.message = "All fields are required.";
+             return result.render("Payment", { request: request });
+           }
 
-                const paymentData = {
-                    _id: new ObjectId(),
-                    amount,
-                    description,
-                    createdAt: new Date(),
-                };
+           // Insert payment data into the database
+           await database.collection("payments").insertOne({
+             userId: request.session.user._id, // Use the logged-in user's ID
+             constructorName: constructorName,
+             location: location,
+             projectSiteName: projectSiteName,
+             modeOfPayment: modeOfPayment,
+             date: new Date(date), // Convert to Date object
+             amount: parseFloat(amount), // Ensure amount is a number
+             createdAt: new Date(), // Add a timestamp
+           });
 
-                // Add payment data to user's record
-                const result = await database.collection("users").updateOne({ _id: ObjectId(userId) }, { $push: { payments: paymentData } });
+           // Success response
+           request.status = "success";
+           request.message = "Payment submitted successfully.";
 
-                if (result.modifiedCount === 0) {
-                    throw new Error("Failed to update payment data.");
-                }
+           result.render("Payment", {
+             request: request,
+           });
+         } catch (error) {
+           console.error("Error processing payment:", error);
+           request.status = "error";
+           request.message = "An unexpected error occurred.";
+           result.render("Payment", { request: request });
+         }
+       });
 
-                res.status(201).json({ message: 'Payment recorded successfully.', payment: paymentData });
-            } catch (error) {
-                console.error('Error in /payment route:', error);
-                res.status(500).json({ message: 'Internal server error.', error: error.message });
-            }
-        });
 
-        app.use(bodyParser.json());
 
         app.get('/payment', (req, res) => {
             if (!req.session.user) {
@@ -1001,7 +1023,22 @@ http.listen(3000, function() {
             date: { type: Date, default: Date.now }
         });
 
+        const paymentSchema = new mongoose.Schema({
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          }, // Reference to the user
+          constructorName: { type: String, required: true },
+          location: { type: String, required: true },
+          projectSiteName: { type: String, required: true },
+          modeOfPayment: { type: String, required: true },
+          date: { type: Date, required: true },
+          amount: { type: Number, required: true },
+        });
+
         const Bill = mongoose.model('bill', billSchema);
+        const Payment = mongoose.model("Payment", paymentSchema);
         app.use(express.json());
         // API Routes
         app.post('/submitBill', async(req, res) => {
