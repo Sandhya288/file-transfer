@@ -396,10 +396,14 @@ http.listen(3000, function() {
            var date = request.fields.date;
            var amount = request.fields.amount;
 
+           // Ensure the user is logged in
            if (!request.session.user) {
              request.status = "error";
              request.message = "Unauthorized: Please log in.";
-             return result.render("Payment", { request: request });
+             return result.render("Payment", {
+               request: request,
+               payments: [],
+             });
            }
 
            // Validate required fields
@@ -413,7 +417,16 @@ http.listen(3000, function() {
            ) {
              request.status = "error";
              request.message = "All fields are required.";
-             return result.render("Payment", { request: request });
+             const payments = await database
+               .collection("payments")
+               .find({
+                 userId: request.session.user._id,
+               })
+               .toArray(); // Fetch existing payments
+             return result.render("Payment", {
+               request: request,
+               payments: payments,
+             });
            }
 
            // Insert payment data into the database
@@ -428,33 +441,113 @@ http.listen(3000, function() {
              createdAt: new Date(), // Add a timestamp
            });
 
+           // Fetch updated payment list in descending order by creation date
+           const payments = await database
+             .collection("payments")
+             .find({
+               userId: request.session.user._id,
+             })
+             .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
+             .toArray();
+
            // Success response
            request.status = "success";
            request.message = "Payment submitted successfully.";
-
            result.render("Payment", {
              request: request,
+             payments: payments, // Pass the updated payment list
            });
          } catch (error) {
            console.error("Error processing payment:", error);
            request.status = "error";
            request.message = "An unexpected error occurred.";
-           result.render("Payment", { request: request });
+           const payments = await database
+             .collection("payments")
+             .find({
+               userId: request.session.user._id,
+             })
+             .toArray(); // Fetch existing payments
+           result.render("Payment", { request: request, payments: payments });
+         }
+       });
+
+
+       app.get("/payment", async function (request, result) {
+         try {
+           // Ensure the user is logged in
+           if (!request.session.user) {
+             request.status = "error";
+             request.message = "Unauthorized: Please log in.";
+             return result.render("Payment", {
+               request: request,
+               payments: [],
+             });
+           }
+
+           // Retrieve payments for the logged-in user in descending order by creation date
+           const payments = await database
+             .collection("payments")
+             .find({
+               userId: request.session.user._id, // Use the logged-in user's ID
+             })
+             .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
+             .toArray();
+
+           // Render the Payment page with the payment list
+           request.status = "success";
+           request.message = "Payments fetched successfully.";
+           result.render("Payment", {
+             request: request,
+             payments: payments, // Ensure `payments` is passed to the EJS template
+           });
+         } catch (error) {
+           console.error("Error fetching payments:", error);
+           request.status = "error";
+           request.message = "An unexpected error occurred.";
+           result.render("Payment", { request: request, payments: [] });
+         }
+       });
+
+       app.get("/payment/share/:id", async (request, response) => {
+         try {
+           const paymentId = request.params.id;
+           const payment = await database.collection("payments").findOne({
+             _id: new ObjectId(paymentId),
+           });
+
+           if (!payment) {
+             return response
+               .status(404)
+               .json({ message: "Payment not found." });
+           }
+
+           // Share logic here (e.g., generate a shareable link or email the details)
+           const shareableLink = `${request.protocol}://${request.get(
+             "host"
+           )}/payment/view/${paymentId}`;
+
+           console.log("Shareable Link:", shareableLink);
+         } catch (error) {
+           console.error("Error sharing payment:", error);
+           response
+             .status(500)
+             .json({ message: "An error occurred while sharing the payment." });
          }
        });
 
 
 
-        app.get('/payment', (req, res) => {
-            if (!req.session.user) {
-                return res.redirect('/Login');
-            }
 
-            res.render('payment', {
-                mainURL: app.locals.mainURL, // Pass the main URL or other required data
-                request: req // Optionally pass the request object for dynamic rendering
-            });
-        });
+        // app.get('/payment', (req, res) => {
+        //     if (!req.session.user) {
+        //         return res.redirect('/Login');
+        //     }
+
+        //     res.render('payment', {
+        //         mainURL: app.locals.mainURL, // Pass the main URL or other required data
+        //         request: req // Optionally pass the request object for dynamic rendering
+        //     });
+        // });
 
 
 
