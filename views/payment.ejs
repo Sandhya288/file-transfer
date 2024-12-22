@@ -1,5 +1,5 @@
 <%- include("includes/header", {
-    "title": "Login"
+    "title": "Payment"
 }) %>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,28 +15,29 @@
             padding: 0;
             background-color: #f4f4f4;
         }
-        
+
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             margin: 50px auto;
             padding: 20px;
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
-        
+
         h1 {
             text-align: center;
             margin-bottom: 20px;
             color: #333;
         }
-        
+
         form {
             display: flex;
             flex-direction: column;
+            margin-bottom: 30px;
         }
-        
+
         input,
         select,
         button {
@@ -46,26 +47,61 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        
+
         button {
             background-color: #007bff;
             color: #fff;
             border: none;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
-        
+
         button:hover {
             background-color: #0056b3;
         }
-        
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f2f2f2;
+            text-transform: uppercase;
+        }
+
+        .action-button {
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .action-button:hover {
+            background-color: #218838;
+        }
+
         .success-message {
             color: green;
             text-align: center;
+            margin-bottom: 15px;
         }
-        
+
         .error-message {
             color: red;
             text-align: center;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -73,6 +109,15 @@
 <body>
     <div class="container">
         <h1>Payment Form</h1>
+
+        <!-- Display success or error messages -->
+        <% if (request.status === "success") { %>
+            <div class="success-message"><%= request.message %></div>
+        <% } else if (request.status === "error") { %>
+            <div class="error-message"><%= request.message %></div>
+        <% } %>
+
+        <!-- Payment Form -->
         <form method="POST" action="/payment">
             <input type="text" name="constructorName" placeholder="Constructor Name" required />
             <input type="text" name="location" placeholder="Location" required />
@@ -88,6 +133,43 @@
             <input type="number" name="amount" placeholder="Amount" required />
             <button type="submit">Submit Payment</button>
         </form>
+
+        <!-- Payment List -->
+        <h2>Your Payments</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Constructor Name</th>
+                    <th>Location</th>
+                    <th>Project Site</th>
+                    <th>Mode of Payment</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (payments && payments.length > 0) { %>
+                    <% payments.forEach(function(payment) { %>
+                        <tr>
+                            <td><%= payment.constructorName %></td>
+                            <td><%= payment.location %></td>
+                            <td><%= payment.projectSiteName %></td>
+                            <td><%= payment.modeOfPayment %></td>
+                            <td><%= new Date(payment.date).toLocaleDateString() %></td>
+                            <td>₹<%= payment.amount.toFixed(2) %></td>
+                            <td>
+                                <a href="/payment/share/<%= payment._id %>" class="action-button">Share</a>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No payments found.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
     </div>
 </body>
 
