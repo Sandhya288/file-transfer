@@ -606,39 +606,46 @@ http.listen(3000, function() {
           }
         });
 
-        app.get("/mycredit", async function (req, res) {
-          try {
-            if (!req.session.user) {
-              req.session.status = "error";
-              req.session.message = "Unauthorized: Please log in.";
-              return res.redirect("/login");
-            }
+       app.get("/mycredit", async function (req, res) {
+         try {
+           if (!req.session.user) {
+             req.session.status = "error";
+             req.session.message = "Unauthorized: Please log in.";
+             return res.redirect("/login");
+           }
 
-            const userId = req.session.user._id;
+           const userId = req.session.user._id;
 
-            // Fetch credit history
-            const credits = await database
-              .collection("credits")
-              .find({ userId: userId })
-              .sort({ date: -1 })
-              .toArray();
+           // Fetch credit and debit history for the logged-in user
+           const transactions = await database
+             .collection("credits")
+             .find({ userId: userId })
+             .sort({ date: -1 }) // Sort by date in descending order
+             .toArray();
 
-            // Calculate current balance
-            const currentBalance = credits.reduce(
-              (sum, credit) => sum + credit.amount,
-              0
-            );
+           // Calculate total credits and debits
+           const totalCredits = transactions
+             .filter((txn) => txn.type === "Credit")
+             .reduce((sum, txn) => sum + txn.amount, 0);
 
-            res.render("mycredit", {
-              request: req,
-              currentBalance: currentBalance,
-              credits: credits,
-            });
-          } catch (error) {
-            console.error("Error fetching credit data:", error);
-            res.status(500).send("An error occurred.");
-          }
-        });
+           const totalDebits = transactions
+             .filter((txn) => txn.type === "Debit")
+             .reduce((sum, txn) => sum + txn.amount, 0);
+
+           // Calculate current balance
+           const currentBalance = totalCredits - totalDebits;
+
+           res.render("mycredit", {
+             request: req,
+             currentBalance: currentBalance,
+             transactions: transactions, // Pass all transactions for the table
+           });
+         } catch (error) {
+           console.error("Error fetching credit data:", error);
+           res.status(500).send("An error occurred.");
+         }
+       });
+
 
 app.post("/mycredit", async function (req, res) {
   try {
@@ -663,7 +670,7 @@ app.post("/mycredit", async function (req, res) {
     await database.collection("credits").insertOne({
       userId: userId,
       amount: parseFloat(amount),
-      type: "Credit",
+      type: "Credit", // Mark this as a credit
       date: new Date(),
     });
 
