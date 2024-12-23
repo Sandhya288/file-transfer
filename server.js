@@ -534,77 +534,78 @@ http.listen(3000, function() {
             }
         });
 
-        app.post("/notes", async function(request, result) {
-            try {
-                // Retrieve form fields
-                var money = request.fields.money;
-                var name = request.fields.name;
-                var paid = request.fields.paid;
+       app.post("/notes", async function (req, res) {
+         try {
+           const { name, money, paid } = req.fields;
 
-                // Ensure the user is logged in
-                if (!request.session.user) {
-                    request.status = "error";
-                    request.message = "Unauthorized: Please log in.";
-                    return result.render("Notes", {
-                        request: request,
-                        notes: [],
-                    });
-                }
+           // Ensure the user is logged in
+           if (!req.session.user) {
+             req.session.status = "error";
+             req.session.message = "Unauthorized: Please log in.";
+             return res.redirect("/notes");
+           }
 
-                // Validate required fields
-                if (!money || !name || !paid) {
-                    request.status = "error";
-                    request.message = "All fields are required.";
-                    const notes = await database
-                        .collection("notes")
-                        .find({
-                            userId: request.session.user._id,
-                        })
-                        .toArray(); // Fetch existing notes
-                    return result.render("Notes", {
-                        request: request,
-                        notes: notes,
-                    });
-                }
+           // Validate required fields
+           if (!name || !money || !paid) {
+             req.session.status = "error";
+             req.session.message = "All fields are required.";
+             return res.redirect("/notes");
+           }
 
-                // Insert note data into the database
-                await database.collection("notes").insertOne({
-                    userId: request.session.user._id, // Use the logged-in user's ID
-                    money: parseFloat(money), // Ensure money is a number
-                    name: name.trim(), // Trim extra spaces
-                    paid: parseFloat(paid), // Ensure paid is a number
-                    createdAt: new Date(), // Add a timestamp
-                });
+           // Insert note into the database
+           await database.collection("notes").insertOne({
+             userId: req.session.user._id,
+             name: name.trim(),
+             money: parseFloat(money),
+             paid: parseFloat(paid),
+             createdAt: new Date(),
+           });
 
-                // Fetch updated notes list in descending order by creation date
-                const notes = await database
-                    .collection("notes")
-                    .find({
-                        userId: request.session.user._id,
-                    })
-                    .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
-                    .toArray();
+           // Set success message in session
+           req.session.status = "success";
+           req.session.message = "Note added successfully.";
+           return res.redirect("/notes");
+         } catch (error) {
+           console.error("Error adding note:", error);
+           req.session.status = "error";
+           req.session.message = "An unexpected error occurred.";
+           return res.redirect("/notes");
+         }
+       });
 
-                // Success response
-                request.status = "success";
-                request.message = "Note submitted successfully.";
-                result.render("Notes", {
-                    request: request,
-                    notes: notes, // Pass the updated notes list
-                });
-            } catch (error) {
-                console.error("Error processing note:", error);
-                request.status = "error";
-                request.message = "An unexpected error occurred.";
-                const notes = await database
-                    .collection("notes")
-                    .find({
-                        userId: request.session.user._id,
-                    })
-                    .toArray(); // Fetch existing notes
-                result.render("Notes", { request: request, notes: notes });
+
+        app.get("/notes", async function (req, res) {
+          try {
+            // Ensure the user is logged in
+            if (!req.session.user) {
+              req.status = "error";
+              req.message = "Unauthorized: Please log in.";
+              return res.render("notes", {
+                request: req,
+                notes: [],
+              });
             }
+
+            // Fetch notes for the logged-in user
+            const notes = await database
+              .collection("notes")
+              .find({ userId: req.session.user._id }) // Filter by logged-in user ID
+              .sort({ createdAt: -1 }) // Sort in descending order by creation date
+              .toArray();
+
+            // Render the notes page with the fetched notes
+            res.render("notes", {
+              request: req,
+              notes: notes,
+            });
+          } catch (error) {
+            console.error("Error fetching notes:", error);
+            req.status = "error";
+            req.message = "An unexpected error occurred.";
+            res.render("notes", { request: req, notes: [] });
+          }
         });
+
 
 
         app.get("/sharedpayments", async(request, response) => {
