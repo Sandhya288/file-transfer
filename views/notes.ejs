@@ -32,6 +32,13 @@
             color: #333;
         }
 
+        .balance {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
         form {
             display: flex;
             flex-direction: column;
@@ -83,17 +90,14 @@
     <div class="container">
         <h1>Notes Form</h1>
 
-        <!-- Display success or error messages -->
-        <% if (request.status === "success") { %>
-            <div class="success-message"><%= request.message %></div>
-        <% } else if (request.status === "error") { %>
-            <div class="error-message"><%= request.message %></div>
-        <% } %>
+        <!-- Current Balance -->
+        <div class="balance">
+            Current Balance: ₹<%= currentBalance.toFixed(2) %>
+        </div>
 
         <!-- Notes Form -->
         <form method="POST" action="/notes">
             <input type="text" name="name" placeholder="Enter Name" required />
-            <input type="number" name="money" placeholder="Enter Money" required />
             <input type="number" name="paid" placeholder="Enter Paid Amount" required />
             <button type="submit">Submit Note</button>
         </form>
@@ -104,22 +108,20 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Money</th>
                     <th>Paid</th>
                 </tr>
             </thead>
             <tbody>
                 <% if (notes && notes.length > 0) { %>
-                    <% notes.forEach(function(note) { %>
+                    <% notes.forEach(function (note) { %>
                         <tr>
                             <td><%= note.name %></td>
-                            <td>₹<%= note.money.toFixed(2) %></td>
                             <td>₹<%= note.paid.toFixed(2) %></td>
                         </tr>
                     <% }) %>
                 <% } else { %>
                     <tr>
-                        <td colspan="3" style="text-align: center;">No notes found.</td>
+                        <td colspan="2" style="text-align: center;">No notes found.</td>
                     </tr>
                 <% } %>
             </tbody>

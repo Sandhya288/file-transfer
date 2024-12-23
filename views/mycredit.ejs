@@ -101,8 +101,8 @@
             <button type="submit">Add Money</button>
         </form>
 
-        <!-- Credit History -->
-        <h2>Credit History</h2>
+        <!-- Transaction History -->
+        <h2>Transaction History</h2>
         <table>
             <thead>
                 <tr>
@@ -112,17 +112,17 @@
                 </tr>
             </thead>
             <tbody>
-                <% if (credits && credits.length > 0) { %>
-                    <% credits.forEach(function (credit) { %>
+                <% if (transactions && transactions.length > 0) { %>
+                    <% transactions.forEach(function (txn) { %>
                         <tr>
-                            <td>₹<%= credit.amount.toFixed(2) %></td>
-                            <td><%= credit.type %></td>
-                            <td><%= new Date(credit.date).toLocaleDateString() %></td>
+                            <td>₹<%= txn.amount.toFixed(2) %></td>
+                            <td><%= txn.type %></td>
+                            <td><%= new Date(txn.date).toLocaleDateString() %></td>
                         </tr>
                     <% }) %>
                 <% } else { %>
                     <tr>
-                        <td colspan="3" style="text-align: center;">No credit history found.</td>
+                        <td colspan="3" style="text-align: center;">No transactions found.</td>
                     </tr>
                 <% } %>
             </tbody>
