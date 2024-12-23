@@ -606,6 +606,78 @@ http.listen(3000, function() {
           }
         });
 
+        app.get("/mycredit", async function (req, res) {
+          try {
+            if (!req.session.user) {
+              req.session.status = "error";
+              req.session.message = "Unauthorized: Please log in.";
+              return res.redirect("/login");
+            }
+
+            const userId = req.session.user._id;
+
+            // Fetch credit history
+            const credits = await database
+              .collection("credits")
+              .find({ userId: userId })
+              .sort({ date: -1 })
+              .toArray();
+
+            // Calculate current balance
+            const currentBalance = credits.reduce(
+              (sum, credit) => sum + credit.amount,
+              0
+            );
+
+            res.render("mycredit", {
+              request: req,
+              currentBalance: currentBalance,
+              credits: credits,
+            });
+          } catch (error) {
+            console.error("Error fetching credit data:", error);
+            res.status(500).send("An error occurred.");
+          }
+        });
+
+app.post("/mycredit", async function (req, res) {
+  try {
+    if (!req.session.user) {
+      req.session.status = "error";
+      req.session.message = "Unauthorized: Please log in.";
+      return res.redirect("/login");
+    }
+
+    const { amount } = req.fields;
+
+    // Validate the input
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      req.session.status = "error";
+      req.session.message = "Please enter a valid amount.";
+      return res.redirect("/mycredit");
+    }
+
+    const userId = req.session.user._id;
+
+    // Insert the credit record
+    await database.collection("credits").insertOne({
+      userId: userId,
+      amount: parseFloat(amount),
+      type: "Credit",
+      date: new Date(),
+    });
+
+    req.session.status = "success";
+    req.session.message = "Amount added successfully.";
+    res.redirect("/mycredit");
+  } catch (error) {
+    console.error("Error adding credit:", error);
+    req.session.status = "error";
+    req.session.message = "An unexpected error occurred.";
+    res.redirect("/mycredit");
+  }
+});
+
 
 
         app.get("/sharedpayments", async(request, response) => {
@@ -1404,6 +1476,12 @@ http.listen(3000, function() {
 
         app.get("/sharedpayments", function(request, result) {
             result.render("sharedpayments", {
+                request: request,
+            });
+        });
+
+        app.get("/mycredits", function(request, result) {
+            result.render("mycredits", {
                 request: request,
             });
         });
