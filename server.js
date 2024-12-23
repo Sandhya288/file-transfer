@@ -536,75 +536,122 @@ http.listen(3000, function() {
 
        app.post("/notes", async function (req, res) {
          try {
-           const { name, money, paid } = req.fields;
+           const { name, paid } = req.fields;
 
-           // Ensure the user is logged in
            if (!req.session.user) {
              req.session.status = "error";
              req.session.message = "Unauthorized: Please log in.";
              return res.redirect("/notes");
            }
 
-           // Validate required fields
-           if (!name || !money || !paid) {
+           const userId = req.session.user._id;
+
+           // Validate input
+           if (!name || !paid || isNaN(paid) || parseFloat(paid) <= 0) {
              req.session.status = "error";
-             req.session.message = "All fields are required.";
+             req.session.message = "Please enter a valid amount.";
              return res.redirect("/notes");
            }
 
-           // Insert note into the database
+           const paidAmount = parseFloat(paid);
+
+           // Fetch current balance
+           const transactions = await database
+             .collection("credits")
+             .find({ userId: userId })
+             .toArray();
+
+           const totalCredits = transactions
+             .filter((txn) => txn.type === "Credit")
+             .reduce((sum, txn) => sum + txn.amount, 0);
+
+           const totalDebits = transactions
+             .filter((txn) => txn.type === "Debit")
+             .reduce((sum, txn) => sum + txn.amount, 0);
+
+           const currentBalance = totalCredits - totalDebits;
+
+           // Check if paid amount exceeds the current balance
+           if (paidAmount > currentBalance) {
+             req.session.status = "error";
+             req.session.message = "Insufficient balance.";
+             return res.redirect("/notes");
+           }
+
+           // Insert the note into the database
            await database.collection("notes").insertOne({
-             userId: req.session.user._id,
+             userId: userId,
              name: name.trim(),
-             money: parseFloat(money),
-             paid: parseFloat(paid),
+             paid: paidAmount,
              createdAt: new Date(),
            });
 
-           // Set success message in session
+           // Record the debit in the credits table
+           await database.collection("credits").insertOne({
+             userId: userId,
+             amount: paidAmount,
+             type: "Debit",
+             date: new Date(),
+           });
+
            req.session.status = "success";
            req.session.message = "Note added successfully.";
-           return res.redirect("/notes");
+           res.redirect("/notes");
          } catch (error) {
            console.error("Error adding note:", error);
            req.session.status = "error";
            req.session.message = "An unexpected error occurred.";
-           return res.redirect("/notes");
+           res.redirect("/notes");
          }
        });
 
 
+
         app.get("/notes", async function (req, res) {
           try {
-            // Ensure the user is logged in
             if (!req.session.user) {
-              req.status = "error";
-              req.message = "Unauthorized: Please log in.";
-              return res.render("notes", {
-                request: req,
-                notes: [],
-              });
+              req.session.status = "error";
+              req.session.message = "Unauthorized: Please log in.";
+              return res.redirect("/login");
             }
+
+            const userId = req.session.user._id;
+
+            // Fetch all transactions (credits and debits)
+            const transactions = await database
+              .collection("credits")
+              .find({ userId: userId })
+              .toArray();
+
+            // Calculate current balance
+            const totalCredits = transactions
+              .filter((txn) => txn.type === "Credit")
+              .reduce((sum, txn) => sum + txn.amount, 0);
+
+            const totalDebits = transactions
+              .filter((txn) => txn.type === "Debit")
+              .reduce((sum, txn) => sum + txn.amount, 0);
+
+            const currentBalance = totalCredits - totalDebits;
 
             // Fetch notes for the logged-in user
             const notes = await database
               .collection("notes")
-              .find({ userId: req.session.user._id }) // Filter by logged-in user ID
-              .sort({ createdAt: -1 }) // Sort in descending order by creation date
+              .find({ userId: userId })
+              .sort({ createdAt: -1 })
               .toArray();
 
-            // Render the notes page with the fetched notes
             res.render("notes", {
               request: req,
+              currentBalance: currentBalance,
               notes: notes,
             });
           } catch (error) {
             console.error("Error fetching notes:", error);
-            req.status = "error";
-            req.message = "An unexpected error occurred.";
-            res.render("notes", { request: req, notes: [] });
+            res.status(500).send("An error occurred.");
           }
         });
+
 
        app.get("/mycredit", async function (req, res) {
          try {
