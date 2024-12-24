@@ -2,6 +2,9 @@
 var express = require("express");
 var app = express();
 const mongoose = require('mongoose');
+const path = require("path");
+const fs = require("fs");
+
 // express formidable is used to parse the form data values
 var formidable = require("express-formidable");
 app.use(formidable());
@@ -39,6 +42,7 @@ app.use("/public/img", express.static(__dirname + "/public/img"));
 app.use("/public/font-awesome-4.7.0", express.static(__dirname + "/public/font-awesome-4.7.0"));
 app.use("/public/fonts", express.static(__dirname + "/public/fonts"));
 app.use(express.static("public"));
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // using EJS as templating engine
 app.set("view engine", "ejs");
@@ -73,14 +77,7 @@ function recursiveGetFile(files, _id) {
             }
         }
 
-        // if it is a folder and have files, then do the recursion
-        if (file.type == "folder" && file.files.length > 0) {
-            singleFile = recursiveGetFile(file.files, _id);
-            // return the file if found in sub-folders
-            if (singleFile != null) {
-                return singleFile;
-            }
-        }
+
     }
 }
 
@@ -534,203 +531,203 @@ http.listen(3000, function() {
             }
         });
 
-       app.post("/notes", async function (req, res) {
-         try {
-           const { name, paid } = req.fields;
+        app.post("/notes", async function(req, res) {
+            try {
+                const { name, paid } = req.fields;
 
-           if (!req.session.user) {
-             req.session.status = "error";
-             req.session.message = "Unauthorized: Please log in.";
-             return res.redirect("/notes");
-           }
+                if (!req.session.user) {
+                    req.session.status = "error";
+                    req.session.message = "Unauthorized: Please log in.";
+                    return res.redirect("/notes");
+                }
 
-           const userId = req.session.user._id;
+                const userId = req.session.user._id;
 
-           // Validate input
-           if (!name || !paid || isNaN(paid) || parseFloat(paid) <= 0) {
-             req.session.status = "error";
-             req.session.message = "Please enter a valid amount.";
-             return res.redirect("/notes");
-           }
+                // Validate input
+                if (!name || !paid || isNaN(paid) || parseFloat(paid) <= 0) {
+                    req.session.status = "error";
+                    req.session.message = "Please enter a valid amount.";
+                    return res.redirect("/notes");
+                }
 
-           const paidAmount = parseFloat(paid);
+                const paidAmount = parseFloat(paid);
 
-           // Fetch current balance
-           const transactions = await database
-             .collection("credits")
-             .find({ userId: userId })
-             .toArray();
+                // Fetch current balance
+                const transactions = await database
+                    .collection("credits")
+                    .find({ userId: userId })
+                    .toArray();
 
-           const totalCredits = transactions
-             .filter((txn) => txn.type === "Credit")
-             .reduce((sum, txn) => sum + txn.amount, 0);
+                const totalCredits = transactions
+                    .filter((txn) => txn.type === "Credit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-           const totalDebits = transactions
-             .filter((txn) => txn.type === "Debit")
-             .reduce((sum, txn) => sum + txn.amount, 0);
+                const totalDebits = transactions
+                    .filter((txn) => txn.type === "Debit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-           const currentBalance = totalCredits - totalDebits;
+                const currentBalance = totalCredits - totalDebits;
 
-           // Check if paid amount exceeds the current balance
-           if (paidAmount > currentBalance) {
-             req.session.status = "error";
-             req.session.message = "Insufficient balance.";
-             return res.redirect("/notes");
-           }
+                // Check if paid amount exceeds the current balance
+                if (paidAmount > currentBalance) {
+                    req.session.status = "error";
+                    req.session.message = "Insufficient balance.";
+                    return res.redirect("/notes");
+                }
 
-           // Insert the note into the database
-           await database.collection("notes").insertOne({
-             userId: userId,
-             name: name.trim(),
-             paid: paidAmount,
-             createdAt: new Date(),
-           });
+                // Insert the note into the database
+                await database.collection("notes").insertOne({
+                    userId: userId,
+                    name: name.trim(),
+                    paid: paidAmount,
+                    createdAt: new Date(),
+                });
 
-           // Record the debit in the credits table
-           await database.collection("credits").insertOne({
-             userId: userId,
-             amount: paidAmount,
-             type: "Debit",
-             date: new Date(),
-           });
+                // Record the debit in the credits table
+                await database.collection("credits").insertOne({
+                    userId: userId,
+                    amount: paidAmount,
+                    type: "Debit",
+                    date: new Date(),
+                });
 
-           req.session.status = "success";
-           req.session.message = "Note added successfully.";
-           res.redirect("/notes");
-         } catch (error) {
-           console.error("Error adding note:", error);
-           req.session.status = "error";
-           req.session.message = "An unexpected error occurred.";
-           res.redirect("/notes");
-         }
-       });
-
-
-
-        app.get("/notes", async function (req, res) {
-          try {
-            if (!req.session.user) {
-              req.session.status = "error";
-              req.session.message = "Unauthorized: Please log in.";
-              return res.redirect("/login");
+                req.session.status = "success";
+                req.session.message = "Note added successfully.";
+                res.redirect("/notes");
+            } catch (error) {
+                console.error("Error adding note:", error);
+                req.session.status = "error";
+                req.session.message = "An unexpected error occurred.";
+                res.redirect("/notes");
             }
-
-            const userId = req.session.user._id;
-
-            // Fetch all transactions (credits and debits)
-            const transactions = await database
-              .collection("credits")
-              .find({ userId: userId })
-              .toArray();
-
-            // Calculate current balance
-            const totalCredits = transactions
-              .filter((txn) => txn.type === "Credit")
-              .reduce((sum, txn) => sum + txn.amount, 0);
-
-            const totalDebits = transactions
-              .filter((txn) => txn.type === "Debit")
-              .reduce((sum, txn) => sum + txn.amount, 0);
-
-            const currentBalance = totalCredits - totalDebits;
-
-            // Fetch notes for the logged-in user
-            const notes = await database
-              .collection("notes")
-              .find({ userId: userId })
-              .sort({ createdAt: -1 })
-              .toArray();
-
-            res.render("notes", {
-              request: req,
-              currentBalance: currentBalance,
-              notes: notes,
-            });
-          } catch (error) {
-            console.error("Error fetching notes:", error);
-            res.status(500).send("An error occurred.");
-          }
         });
 
 
-       app.get("/mycredit", async function (req, res) {
-         try {
-           if (!req.session.user) {
-             req.session.status = "error";
-             req.session.message = "Unauthorized: Please log in.";
-             return res.redirect("/login");
-           }
 
-           const userId = req.session.user._id;
+        app.get("/notes", async function(req, res) {
+            try {
+                if (!req.session.user) {
+                    req.session.status = "error";
+                    req.session.message = "Unauthorized: Please log in.";
+                    return res.redirect("/login");
+                }
 
-           // Fetch credit and debit history for the logged-in user
-           const transactions = await database
-             .collection("credits")
-             .find({ userId: userId })
-             .sort({ date: -1 }) // Sort by date in descending order
-             .toArray();
+                const userId = req.session.user._id;
 
-           // Calculate total credits and debits
-           const totalCredits = transactions
-             .filter((txn) => txn.type === "Credit")
-             .reduce((sum, txn) => sum + txn.amount, 0);
+                // Fetch all transactions (credits and debits)
+                const transactions = await database
+                    .collection("credits")
+                    .find({ userId: userId })
+                    .toArray();
 
-           const totalDebits = transactions
-             .filter((txn) => txn.type === "Debit")
-             .reduce((sum, txn) => sum + txn.amount, 0);
+                // Calculate current balance
+                const totalCredits = transactions
+                    .filter((txn) => txn.type === "Credit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-           // Calculate current balance
-           const currentBalance = totalCredits - totalDebits;
+                const totalDebits = transactions
+                    .filter((txn) => txn.type === "Debit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-           res.render("mycredit", {
-             request: req,
-             currentBalance: currentBalance,
-             transactions: transactions, // Pass all transactions for the table
-           });
-         } catch (error) {
-           console.error("Error fetching credit data:", error);
-           res.status(500).send("An error occurred.");
-         }
-       });
+                const currentBalance = totalCredits - totalDebits;
+
+                // Fetch notes for the logged-in user
+                const notes = await database
+                    .collection("notes")
+                    .find({ userId: userId })
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.render("notes", {
+                    request: req,
+                    currentBalance: currentBalance,
+                    notes: notes,
+                });
+            } catch (error) {
+                console.error("Error fetching notes:", error);
+                res.status(500).send("An error occurred.");
+            }
+        });
 
 
-app.post("/mycredit", async function (req, res) {
-  try {
-    if (!req.session.user) {
-      req.session.status = "error";
-      req.session.message = "Unauthorized: Please log in.";
-      return res.redirect("/login");
-    }
+        app.get("/mycredit", async function(req, res) {
+            try {
+                if (!req.session.user) {
+                    req.session.status = "error";
+                    req.session.message = "Unauthorized: Please log in.";
+                    return res.redirect("/login");
+                }
 
-    const { amount } = req.fields;
+                const userId = req.session.user._id;
 
-    // Validate the input
-    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-      req.session.status = "error";
-      req.session.message = "Please enter a valid amount.";
-      return res.redirect("/mycredit");
-    }
+                // Fetch credit and debit history for the logged-in user
+                const transactions = await database
+                    .collection("credits")
+                    .find({ userId: userId })
+                    .sort({ date: -1 }) // Sort by date in descending order
+                    .toArray();
 
-    const userId = req.session.user._id;
+                // Calculate total credits and debits
+                const totalCredits = transactions
+                    .filter((txn) => txn.type === "Credit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-    // Insert the credit record
-    await database.collection("credits").insertOne({
-      userId: userId,
-      amount: parseFloat(amount),
-      type: "Credit", // Mark this as a credit
-      date: new Date(),
-    });
+                const totalDebits = transactions
+                    .filter((txn) => txn.type === "Debit")
+                    .reduce((sum, txn) => sum + txn.amount, 0);
 
-    req.session.status = "success";
-    req.session.message = "Amount added successfully.";
-    res.redirect("/mycredit");
-  } catch (error) {
-    console.error("Error adding credit:", error);
-    req.session.status = "error";
-    req.session.message = "An unexpected error occurred.";
-    res.redirect("/mycredit");
-  }
-});
+                // Calculate current balance
+                const currentBalance = totalCredits - totalDebits;
+
+                res.render("mycredit", {
+                    request: req,
+                    currentBalance: currentBalance,
+                    transactions: transactions, // Pass all transactions for the table
+                });
+            } catch (error) {
+                console.error("Error fetching credit data:", error);
+                res.status(500).send("An error occurred.");
+            }
+        });
+
+
+        app.post("/mycredit", async function(req, res) {
+            try {
+                if (!req.session.user) {
+                    req.session.status = "error";
+                    req.session.message = "Unauthorized: Please log in.";
+                    return res.redirect("/login");
+                }
+
+                const { amount } = req.fields;
+
+                // Validate the input
+                if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+                    req.session.status = "error";
+                    req.session.message = "Please enter a valid amount.";
+                    return res.redirect("/mycredit");
+                }
+
+                const userId = req.session.user._id;
+
+                // Insert the credit record
+                await database.collection("credits").insertOne({
+                    userId: userId,
+                    amount: parseFloat(amount),
+                    type: "Credit", // Mark this as a credit
+                    date: new Date(),
+                });
+
+                req.session.status = "success";
+                req.session.message = "Amount added successfully.";
+                res.redirect("/mycredit");
+            } catch (error) {
+                console.error("Error adding credit:", error);
+                req.session.status = "error";
+                req.session.message = "An unexpected error occurred.";
+                res.redirect("/mycredit");
+            }
+        });
 
 
 
@@ -1165,7 +1162,7 @@ app.post("/mycredit", async function (req, res) {
         app.post("/UploadFile", async function(request, result) {
             if (request.session.user) {
                 const user = await database.collection("users").findOne({
-                    "_id": ObjectId(request.session.user._id)
+                    "_id": ObjectId(request.session.user._id),
                 });
 
                 const folder = request.fields.folder || ""; // Folder name (empty if root)
@@ -1178,43 +1175,31 @@ app.post("/mycredit", async function (req, res) {
                         "name": request.files.file.name,
                         "type": request.files.file.type,
                         "filePath": "",
-                        "createdAt": new Date().getTime()
+                        "createdAt": new Date().getTime(),
                     };
 
                     const filePath = `${folderPath}/${new Date().getTime()}-${request.files.file.name}`;
                     uploadedObj.filePath = filePath;
 
-
-
-
-                    if (!fileSystem.existsSync(folderPath)) {
-                        fileSystem.mkdirSync(folderPath, { recursive: true });
+                    if (!fs.existsSync(folderPath)) {
+                        fs.mkdirSync(folderPath, { recursive: true });
                     }
 
-                    fileSystem.readFile(request.files.file.path, function(err, data) {
+                    fs.readFile(request.files.file.path, function(err, data) {
                         if (err) throw err;
-                        console.log('File read!');
 
-                        fileSystem.writeFile(filePath, data, async function(err) {
+                        fs.writeFile(filePath, data, async function(err) {
                             if (err) throw err;
-                            console.log('File written!');
 
-                            await database.collection("users").updateOne({
-                                "_id": ObjectId(request.session.user._id)
-                            }, {
-                                $push: {
-                                    "uploaded": uploadedObj
-                                }
-                            });
+                            await database.collection("users").updateOne({ "_id": ObjectId(request.session.user._id) }, { $push: { "uploaded": uploadedObj } });
 
                             request.session.status = "success";
                             request.session.message = "File has been uploaded.";
                             result.redirect("/MyUploads");
                         });
 
-                        fileSystem.unlink(request.files.file.path, function(err) {
+                        fs.unlink(request.files.file.path, function(err) {
                             if (err) throw err;
-                            console.log('Temporary file deleted!');
                         });
                     });
                 } else {
@@ -1226,60 +1211,73 @@ app.post("/mycredit", async function (req, res) {
                 result.redirect("/Login");
             }
         });
-        app.post("/MoveFileToFolder", (req, res) => {
-            const { fileId, fileName, folderName } = req.body;
-            const currentPath = path.join(__dirname, "uploads", fileName);
-            const folderPath = path.join(__dirname, "uploads", folderName);
-
-            // Ensure folder exists
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath, { recursive: true });
-            }
-
-            const newPath = path.join(folderPath, fileName);
-
-            // Move the file
-            fs.rename(currentPath, newPath, (err) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).send({ success: false, message: "File move failed" });
-                }
-                res.send({ success: true });
-            });
-        });
 
         app.get("/PreviewFile/:fileId", async(req, res) => {
             try {
                 const fileId = req.params.fileId;
-                const file = await database.collection("files").findOne({ "_id": new ObjectId(fileId) });
+                const file = await database.collection("users").findOne({
+                    "uploaded._id": ObjectId(fileId),
+                });
 
                 if (!file) {
                     return res.status(404).send("File not found");
                 }
 
-                const filePath = path.join(__dirname, 'uploads', file.path); // Adjust path based on your file storage setup
+                const uploadedFile = file.uploaded.find(
+                    (uploaded) => uploaded._id.toString() === fileId
+                );
 
-                const fileType = file.type;
-                res.setHeader('Content-Type', fileType);
+                if (!uploadedFile) {
+                    return res.status(404).send("File not found");
+                }
 
-                if (fileType.startsWith("image/")) {
-                    // If image, send as image
-                    res.sendFile(filePath);
-                } else if (fileType === "application/pdf") {
-                    // If PDF, send as PDF
+                const filePath = path.join(__dirname, uploadedFile.filePath);
+
+                if (!fs.existsSync(filePath)) {
+                    return res.status(404).send("File not found");
+                }
+
+                const fileType = uploadedFile.type;
+                res.setHeader("Content-Type", fileType);
+
+                if (fileType.startsWith("image/") || fileType === "application/pdf" || fileType === "application/doc") {
+                    // Send image or PDF files
                     res.sendFile(filePath);
                 } else if (fileType.startsWith("text/")) {
-                    // If text, read the file and send as text
-                    const content = fs.readFileSync(filePath, 'utf-8');
-                    res.send(content);
+                    // Read and send text files
+                    const content = fs.readFileSync(filePath, "utf-8");
+                    res.send(`<pre>${content}</pre>`);
+                } else if (
+                    fileType === "application/doc" || // doc
+                    fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // docx
+                    fileType === "application/vnd.ms-excel" || // xls
+                    fileType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || // xlsx
+                    fileType === "application/vnd.ms-powerpoint" || // ppt
+                    fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" || // odp
+                    fileType === "text/rtf" || // rtf
+                    fileType === "application/epub+zip" // epub
+                ) {
+                    // For Office documents and RTF/EPUB, suggest downloading or displaying as raw files.
+                    res.download(filePath, uploadedFile.name);
+                } else if (fileType === "text/html") {
+                    // Render HTML files
+                    const htmlContent = fs.readFileSync(filePath, "utf-8");
+                    res.send(htmlContent);
+                } else if (
+                    ["application/x-fig", "application/x-photoshop", "image/vnd.adobe.photoshop", "application/postscript"].includes(fileType)
+                ) {
+                    // Preview support for fig, psd, ai, etc.
+                    res.sendFile(filePath);
                 } else {
-                    res.status(415).send("Unsupported file type");
+                    // Unsupported file types
+                    res.status(415).send("Preview for this file type is not supported yet.");
                 }
             } catch (error) {
                 console.error(error);
                 res.status(500).send("Server error");
             }
         });
+
 
 
 

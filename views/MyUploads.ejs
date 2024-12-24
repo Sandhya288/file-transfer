@@ -1,86 +1,88 @@
 <%- include("includes/header", { "title": "My Uploads" }) %>
 
-    <div class="container" style="margin-top: 50px; margin-bottom: 50px;">
+    <div class="container my-5">
+        <!-- Alert Section -->
         <%- include("includes/ResponseAlert", { "request": request }) %>
 
-            <div class="row">
+            <div class="row align-items-center mb-4">
                 <div class="col-md-8">
-                    <h1>My Uploads</h1>
+                    <h1 class="display-4">My Uploads</h1>
                 </div>
-                <div class="col-md-4 text-right">
-                    <button class="btn btn-primary" onclick="selectFileForUpload();">Upload File</button>
+                <div class="col-md-4 text-md-end">
+                    <button class="btn btn-primary btn-lg" onclick="selectFileForUpload();" title="Upload a new file">
+                <i class="fa fa-upload"></i> Upload File
+            </button>
                 </div>
             </div>
 
             <!-- Folder Creation Form -->
-            <form action="<%= request.mainURL %>/CreateFolder" method="POST">
-                <div class="form-group mt-4">
-                    <label for="folderName">Create New Folder:</label>
-                    <input type="text" name="folderName" id="folderName" class="form-control" placeholder="Enter folder name" required>
-                </div>
-                <button type="submit" class="btn btn-success">Create Folder</button>
-            </form>
 
-            <div class="row mt-4">
-                <% uploaded.forEach(function(singleFile) { %>
-                    <div class="col-md-4 my-3">
-                        <div class="card">
-                            <div class="card-body text-center" style="font-size: 50px; height: 150px;">
-                                <i class="fa fa-file-text-o"></i>
-                            </div>
-                            <div class="card-footer">
-                                <h3 class="text-truncate">
-                                    <a href="javascript:void(0);" onclick="viewFile(this);" data-id="<%= singleFile._id %>" data-name="<%= singleFile.name %>" data-type="<%= singleFile.type %>">
-                                        <%= singleFile.name %>
-                                    </a>
-                                </h3>
+
+            <!-- Uploaded Files Section -->
+            <div class="row">
+                <% if (uploaded.length > 0) { %>
+                    <% uploaded.forEach(function(singleFile) { %>
+                        <div class="col-md-4 my-3">
+                            <div class="card shadow-sm">
+                                <div class="card-body d-flex align-items-center justify-content-center" style="height: 150px; font-size: 50px;">
+                                    <i class="fa fa-file-text-o text-primary"></i>
+                                </div>
+                                <div class="card-footer text-center">
+                                    <h5 class="text-truncate mb-0">
+                                        <a href="javascript:void(0);" onclick="viewFile(this);" data-id="<%= singleFile._id %>" data-name="<%= singleFile.name %>" data-type="<%= singleFile.type %>" class="text-decoration-none">
+                                            <%= singleFile.name %>
+                                        </a>
+                                    </h5>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <% }); %>
+                        <% }); %>
+                            <% } else { %>
+                                <div class="col-12">
+                                    <p class="text-center text-muted">No files uploaded yet. Start by uploading a file!</p>
+                                </div>
+                                <% } %>
             </div>
     </div>
 
     <!-- File Upload Form -->
-    <form method="POST" action="<%= request.mainURL %>/UploadFile" enctype="multipart/form-data" id="form-upload-file">
-        <input type="file" name="file" id="input-file-upload" style="display: none;" onchange="confirmUpload();" required />
+    <form method="POST" action="<%= request.mainURL %>/UploadFile" enctype="multipart/form-data" id="form-upload-file" style="display: none;">
+        <input type="file" name="file" id="input-file-upload" required onchange="confirmUpload();" />
     </form>
 
-    <!-- Modal for Viewing Files -->
-    <div class="modal fade" id="viewFileModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
+    <!-- File Viewing Modal -->
+    <div class="modal fade" id="viewFileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"></h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body text-center">
                     <!-- Content dynamically added by JS -->
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer justify-content-between">
                     <!-- Share via Link Form -->
-                    <form method="POST" action="<%= request.mainURL %>/ShareViaLink" id="form-share-via-link">
+                    <form method="POST" action="<%= request.mainURL %>/ShareViaLink" id="form-share-via-link" class="w-100">
                         <input type="hidden" name="_id" required />
-                        <div class="form-group">
-                            <label for="project-name">Project Name:</label>
+                        <div class="mb-3">
                             <input type="text" name="projectName" id="project-name" class="form-control" placeholder="Enter project name" required />
                         </div>
-                        <div class="form-group">
-                            <label for="recipient-email">Recipient Email:</label>
+                        <div class="mb-3">
                             <input type="email" name="email" id="recipient-email" class="form-control" placeholder="Enter recipient's registered email" required />
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="confirmShareViaLink();">Share via Link</button>
+                        <button type="button" class="btn btn-primary w-100" onclick="confirmShareViaLink();">
+                        <i class="fa fa-share"></i> Share via Link
+                    </button>
                     </form>
 
                     <!-- Delete File Form -->
                     <form method="POST" action="<%= request.mainURL %>/DeleteFile" id="form-delete-file">
                         <input type="hidden" name="_id" required />
-                        <button type="button" class="btn btn-danger" onclick="confirmDeleteFile();">Delete</button>
+                        <button type="button" class="btn btn-danger w-100 mt-3" onclick="confirmDeleteFile();">
+                        <i class="fa fa-trash"></i> Delete File
+                    </button>
                     </form>
-
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -93,42 +95,40 @@
 
         function confirmUpload() {
             swal({
-                title: "Are you sure?",
-                text: "Upload the selected file to the server?",
+                title: "Upload Confirmation",
+                text: "Do you want to upload the selected file?",
                 icon: "warning",
                 buttons: true,
                 dangerMode: true,
-            }).then(function(isOkay) {
+            }).then((isOkay) => {
                 if (isOkay) {
                     document.getElementById("form-upload-file").submit();
                 }
             });
         }
 
-
-
         function viewFile(self) {
-            const _id = self.getAttribute("data-id");
-            const name = self.getAttribute("data-name");
+            const _id = self.dataset.id;
+            const name = self.dataset.name;
 
             document.querySelector("#viewFileModal .modal-title").textContent = name;
             document.getElementById("form-delete-file")._id.value = _id;
             document.getElementById("form-share-via-link")._id.value = _id;
 
-            const modalBodyHtml = `
-            <button type="button" class="btn btn-success" onclick="downloadFile('${_id}');">Download</button>
-        `;
-            document.querySelector("#viewFileModal .modal-body").innerHTML = modalBodyHtml;
+            document.querySelector("#viewFileModal .modal-body").innerHTML = `
+            <button class="btn btn-success mb-3" onclick="downloadFile('${_id}');">
+                <i class="fa fa-download"></i> Download
+            </button>`;
 
-            $("#viewFileModal").modal("show");
+            new bootstrap.Modal(document.getElementById("viewFileModal")).show();
         }
 
         function confirmShareViaLink() {
-            const emailField = document.getElementById("recipient-email");
-            const projectNameField = document.getElementById("project-name");
+            const email = document.getElementById("recipient-email").value;
+            const projectName = document.getElementById("project-name").value;
 
-            if (!emailField.value || !projectNameField.value) {
-                alert("Please fill out all required fields.");
+            if (!email || !projectName) {
+                alert("Please fill in all fields.");
                 return;
             }
 
