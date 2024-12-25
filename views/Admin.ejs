@@ -1,1 +1,61 @@
-<img src="<%= request.mainURL %>/public/img/blur-admin-panel.png" style="width: 100%;" />
+<%- include("includes/header", {
+    "title": "Admin"
+}) %>
+
+    <h1>Admin Dashboard</h1>
+
+    <h2>Credits</h2>
+    <ul>
+        <% credits.forEach(function(credit) { %>
+            <li>
+                <%= credit.detail %>
+            </li>
+            <% }); %>
+    </ul>
+
+    <h2>Notes</h2>
+    <ul>
+        <% notes.forEach(function(note) { %>
+            <li>
+                <%= note.title %>
+            </li>
+            <% }); %>
+    </ul>
+
+    <h2>Payment Shares</h2>
+    <ul>
+        <% paymentShares.forEach(function(share) { %>
+            <li>
+                <%= share.amount %>
+            </li>
+            <% }); %>
+    </ul>
+
+    <h2>Payments</h2>
+    <ul>
+        <% payments.forEach(function(payment) { %>
+            <li>
+                <%= payment.transactionId %>
+            </li>
+            <% }); %>
+    </ul>
+
+    <h2>Public Links</h2>
+    <ul>
+        <% publicLinks.forEach(function(link) { %>
+            <li>
+                <%= link.url %>
+            </li>
+            <% }); %>
+    </ul>
+
+    <h2>Users</h2>
+    <ul>
+        <% users.forEach(function(user) { %>
+            <li>
+                <%= user.name %> -
+                    <%= user.email %>
+            </li>
+            <% }); %>
+    </ul>
+    <%- include("includes/footer") %>

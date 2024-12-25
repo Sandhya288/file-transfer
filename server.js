@@ -46,6 +46,7 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // using EJS as templating engine
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 // main URL of website
 var mainURL = "http://localhost:3000";
@@ -310,6 +311,31 @@ http.listen(3000, function() {
                 request: request
             });
         });
+        app.get("/Admin", async function(request, result) {
+            try {
+                // Fetch data from the database
+                const credits = await credits.find(); // Replace with your actual model or query
+                const notes = await notes.find(); // Replace with your actual model or query
+                const paymentShares = await paymentShares.find(); // Replace with your actual model or query
+                const payments = await payments.find(); // Replace with your actual model or query
+                const publicLinks = await publicLinks.find(); // Replace with your actual model or query
+                const users = await users.find(); // Replace with your actual model or query
+
+                // Render the Admin page with fetched data
+                result.render("Admin", {
+                    request: request,
+                    credits: credits,
+                    notes: notes,
+                    paymentShares: paymentShares,
+                    payments: payments,
+                    publicLinks: publicLinks,
+                    users: users
+                });
+            } catch (error) {
+                console.error("Error fetching admin data:", error);
+                result.status(500).send("An error occurred while loading the Admin page.");
+            }
+        });
 
         // search files or folders
         app.get("/Search", async function(request, result) {
@@ -503,6 +529,31 @@ http.listen(3000, function() {
                 result.render("Payment", { request: request, payments: [] });
             }
         });
+
+        app.post("/payment/share/:id", async(request, response) => {
+            try {
+                const paymentId = request.params.id;
+                const payment = await database.collection("payment_share").findOne({
+                    _id: new ObjectId(paymentId),
+                });
+
+                if (!payment) {
+                    return response.status(404).json({ message: "Payment not found." });
+                }
+
+                const shareableLink = `${request.protocol}://${request.get("host")}/payment/view/${paymentId}`;
+
+                console.log("Shareable Link:", shareableLink);
+
+                // Additional logic for sharing (e.g., sending email)
+
+                response.status(200).json({ message: "Payment shared successfully!" });
+            } catch (error) {
+                console.error("Error sharing payment:", error);
+                response.status(500).json({ message: "An error occurred while sharing the payment." });
+            }
+        });
+
 
         app.get("/payment/share/:id", async(request, response) => {
             try {

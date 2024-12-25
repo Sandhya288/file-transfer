@@ -6,12 +6,15 @@
 
             <div class="row align-items-center mb-4">
                 <div class="col-md-8">
-                    <h1 class="display-4">My Uploads</h1>
+                    <h1 class="display-5">My Uploads</h1>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <button class="btn btn-primary btn-lg" onclick="selectFileForUpload();" title="Upload a new file">
-                <i class="fa fa-upload"></i> Upload File
-            </button>
+                    <div class="upload-btn-container">
+                        <button class="btn btn-primary btn-lg upload-btn" onclick="selectFileForUpload();" title="Upload a new file">
+                            <i class="fa fa-upload"></i> Upload File
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
@@ -147,5 +150,20 @@
             }
         }
     </script>
+
+    <style>
+        .upload-btn-container {
+            display: flex;
+            justify-content: flex-end;
+            /* Aligns content to the right */
+            width: 100%;
+            /* Ensures the container takes the full width */
+        }
+        
+        .upload-btn {
+            margin-right: 0;
+            /* Removes any unwanted right margin */
+        }
+    </style>
 
     <%- include("includes/footer") %>
