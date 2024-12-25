@@ -582,6 +582,64 @@ http.listen(3000, function() {
             }
         });
 
+        app.post("/payment/share", async (request, response) => {
+          try {
+            const paymentId = request.fields.paymentId; // Payment ID
+            const email = request.fields.email; // Email to share with
+
+            if (!paymentId || !email) {
+              return response
+                .status(400)
+                .json({ message: "Payment ID and email are required." });
+            }
+
+            // Check if the email exists in the `users` collection
+            const userToShareWith = await database
+              .collection("users")
+              .findOne({ email: email });
+
+            if (!userToShareWith) {
+              return response
+                .status(404)
+                .json({ message: "User with this email does not exist." });
+            }
+
+            // Check if the logged-in user exists
+            const loggedInUser = await database.collection("users").findOne({
+              _id: new ObjectId(request.session.user._id),
+            });
+
+            if (!loggedInUser) {
+              return response
+                .status(401)
+                .json({ message: "Unauthorized: Please log in." });
+            }
+
+            // Insert data into `payment_share`
+            await database.collection("payment_share").insertOne({
+              paymentId: new ObjectId(paymentId),
+              sharedWith: {
+                _id: userToShareWith._id,
+                email: userToShareWith.email,
+              },
+              sharedBy: {
+                _id: loggedInUser._id,
+                email: loggedInUser.email,
+              },
+              createdAt: new Date(),
+            });
+
+            return response
+              .status(200)
+              .json({ message: "Payment shared successfully!" });
+          } catch (error) {
+            console.error("Error sharing payment:", error);
+            response.status(500).json({
+              message: "An error occurred while sharing the payment.",
+            });
+          }
+        });
+
         app.post("/notes", async function(req, res) {
             try {
                 const { name, paid } = req.fields;
