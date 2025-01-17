@@ -1,61 +1,27 @@
-<%- include("includes/header", {
-    "title": "Admin"
-}) %>
+<%- include("includes/header") %>
 
-    <h1>Admin Dashboard</h1>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <% collections.forEach(collection => { %>
+            <div class="collection">
+                <h2>
+                    <%= collection.collection %>
+                </h2>
+                <% if (collection.status === "success") { %>
+                    <ul>
+                        <% collection.data.forEach(doc => { %>
+                            <li>
+                                <%= JSON.stringify(doc) %>
+                            </li>
+                            <% }) %>
+                    </ul>
+                    <% } else { %>
+                        <p>Error:
+                            <%= collection.message %>
+                        </p>
+                        <% } %>
+            </div>
+            <% }) %>
+    </div>
 
-    <h2>Credits</h2>
-    <ul>
-        <% credits.forEach(function(credit) { %>
-            <li>
-                <%= credit.detail %>
-            </li>
-            <% }); %>
-    </ul>
-
-    <h2>Notes</h2>
-    <ul>
-        <% notes.forEach(function(note) { %>
-            <li>
-                <%= note.title %>
-            </li>
-            <% }); %>
-    </ul>
-
-    <h2>Payment Shares</h2>
-    <ul>
-        <% paymentShares.forEach(function(share) { %>
-            <li>
-                <%= share.amount %>
-            </li>
-            <% }); %>
-    </ul>
-
-    <h2>Payments</h2>
-    <ul>
-        <% payments.forEach(function(payment) { %>
-            <li>
-                <%= payment.transactionId %>
-            </li>
-            <% }); %>
-    </ul>
-
-    <h2>Public Links</h2>
-    <ul>
-        <% publicLinks.forEach(function(link) { %>
-            <li>
-                <%= link.url %>
-            </li>
-            <% }); %>
-    </ul>
-
-    <h2>Users</h2>
-    <ul>
-        <% users.forEach(function(user) { %>
-            <li>
-                <%= user.name %> -
-                    <%= user.email %>
-            </li>
-            <% }); %>
-    </ul>
     <%- include("includes/footer") %>

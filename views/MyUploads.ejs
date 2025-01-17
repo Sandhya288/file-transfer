@@ -11,15 +11,11 @@
                 <div class="col-md-4 text-md-end">
                     <div class="upload-btn-container">
                         <button class="btn btn-primary btn-lg upload-btn" onclick="selectFileForUpload();" title="Upload a new file">
-                            <i class="fa fa-upload"></i> Upload File
-                        </button>
+                    <i class="fa fa-upload"></i> Upload File
+                </button>
                     </div>
-
                 </div>
             </div>
-
-            <!-- Folder Creation Form -->
-
 
             <!-- Uploaded Files Section -->
             <div class="row">
@@ -36,6 +32,9 @@
                                             <%= singleFile.name %>
                                         </a>
                                     </h5>
+                                    <button class="btn btn-primary mt-2" onclick="viewFile(this);" data-id="<%= singleFile._id %>" data-name="<%= singleFile.name %>" data-type="<%= singleFile.type %>">
+                                <i class="fa fa-eye"></i> View
+                            </button>
                                 </div>
                             </div>
                         </div>
@@ -58,8 +57,10 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="viewFileModalLabel">File Preview</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body text-center">
                     <!-- Content dynamically added by JS -->
@@ -113,15 +114,39 @@
         function viewFile(self) {
             const _id = self.dataset.id;
             const name = self.dataset.name;
+            const type = self.dataset.type;
 
-            document.querySelector("#viewFileModal .modal-title").textContent = name;
+            const modalTitle = document.querySelector("#viewFileModal .modal-title");
+            const modalBody = document.querySelector("#viewFileModal .modal-body");
+
+            modalTitle.textContent = name;
+            modalBody.innerHTML = ''; // Clear previous content
+
+            let previewHtml = '';
+
+            if (type.startsWith("image/")) {
+                previewHtml = `<img src="/PreviewFile/${_id}" alt="${name}" class="img-fluid" />`;
+            } else if (type === "application/pdf") {
+                previewHtml = `<iframe src="/PreviewFile/${_id}" style="width: 100%; height: 500px;" frameborder="0"></iframe>`;
+            } else if (type.startsWith("text/")) {
+                fetch(`/PreviewFile/${_id}`)
+                    .then(response => response.text())
+                    .then(content => {
+                        modalBody.innerHTML = `<pre>${content}</pre>`;
+                    })
+                    .catch(error => {
+                        console.error("Error loading file:", error);
+                        modalBody.innerHTML = `<p>Failed to load file content.</p>`;
+                    });
+                return;
+            } else {
+                previewHtml = `<p>Preview not available for this file type. Please download the file to view.</p>`;
+            }
+
+            modalBody.innerHTML = previewHtml;
+
             document.getElementById("form-delete-file")._id.value = _id;
             document.getElementById("form-share-via-link")._id.value = _id;
-
-            document.querySelector("#viewFileModal .modal-body").innerHTML = `
-            <button class="btn btn-success mb-3" onclick="downloadFile('${_id}');">
-                <i class="fa fa-download"></i> Download
-            </button>`;
 
             new bootstrap.Modal(document.getElementById("viewFileModal")).show();
         }
@@ -155,14 +180,11 @@
         .upload-btn-container {
             display: flex;
             justify-content: flex-end;
-            /* Aligns content to the right */
             width: 100%;
-            /* Ensures the container takes the full width */
         }
         
         .upload-btn {
             margin-right: 0;
-            /* Removes any unwanted right margin */
         }
     </style>
 

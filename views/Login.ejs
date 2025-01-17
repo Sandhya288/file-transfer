@@ -18,6 +18,14 @@
                             <form action="<%= request.mainURL %>/Login" method="POST">
                                 <!-- Email -->
                                 <div class="mb-3">
+                                    <label for="role" class="form-label">Role</label>
+                                    <select id="role" name="role" class="form-control rounded-pill px-3" required>
+                                        <option value="" disabled selected>Select a Role</option>
+                                        <option value="Vendor">Vendor</option>
+                                        <option value="Consultant">Consultant</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
                                     <label for="email" class="form-label">Email</label>
                                     <input type="email" id="email" placeholder="Enter your email" name="email" class="form-control rounded-pill px-3" required />
                                 </div>

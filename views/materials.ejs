@@ -103,6 +103,14 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        .total-summary {
+            font-weight: bold;
+        }
+        
+        #squareFootage {
+            width: 250px;
+        }
     </style>
 </head>
 
@@ -110,6 +118,16 @@
     <div class="materials-form-container">
         <h2>Materials Form</h2>
         <form id="materials-form" onsubmit="submitMaterialsForm(event)">
+            <label for="squareFootage">Select Square Footage:</label>
+            <select id="squareFootage" name="squareFootage" onchange="handleSquareFootageChange(this)">
+                <option>Select</option>
+                <option value="100">100 sq ft</option>
+                <option value="500">500 sq ft</option>
+                <option value="1000">1000 sq ft</option>
+                <option value="1500">1500 sq ft</option>
+                <option value="other">Other</option>
+            </select>
+            <input type="number" id="customSquareFootage" name="customSquareFootage" placeholder="Enter custom square footage" style="display: none;" />
             <div id="materials-container">
                 <div class="item-row">
                     <select name="materials[][name]" onchange="handleMaterialChange(this)">
@@ -139,33 +157,21 @@
                     </select>
                     <input type="text" name="materials[][customName]" placeholder="Enter material name" style="display: none;">
                     <input type="text" name="materials[][subcategory]" placeholder="Enter subcategory name">
-                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
-                    <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                    <input type="number" name="materials[][quantity]" placeholder="Quantity" required onchange="updateTotal(this)">
+                    <input type="number" name="materials[][rate]" placeholder="Rate (₹)" required onchange="updateTotal(this)">
                     <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
                     <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
                 </div>
             </div>
             <button type="button" class="add-item-btn" onclick="addRow()">Add Material</button>
+
             <div class="total-container">
+                <div class="total-summary">
+                    Total Cost: ₹<span id="totalCost">0.00</span>
+                </div>
                 <button type="submit">Submit</button>
             </div>
         </form>
-
-        <div id="materials-table-container" style="display: none;">
-            <h2>Submitted Materials</h2>
-            <table border="1" style="width: 100%; text-align: left;">
-                <thead>
-                    <tr>
-                        <th>Material</th>
-                        <th>Subcategory</th>
-                        <th>Quantity</th>
-                        <th>Percentage (%)</th>
-                        <th>Total (₹)</th>
-                    </tr>
-                </thead>
-                <tbody id="materials-table-body"></tbody>
-            </table>
-        </div>
     </div>
 
     <script>
@@ -211,9 +217,9 @@
                     <option value="OTHER">Other</option>
                 </select>
                 <input type="text" name="materials[][customName]" placeholder="Enter material name" style="display: none;">
-                 <input type="text" name="materials[][subcategory]" placeholder="Enter subcategory name">
-                <input type="number" name="materials[][quantity]" placeholder="Quantity" required oninput="updateTotals()">
-                <input type="number" name="materials[][percentage]" placeholder="Percentage (%)" required oninput="updateTotals()">
+                <input type="text" name="materials[][subcategory]" placeholder="Enter subcategory name">
+                <input type="number" name="materials[][quantity]" placeholder="Quantity" required onchange="updateTotal(this)">
+                <input type="number" name="materials[][rate]" placeholder="Rate (₹)" required onchange="updateTotal(this)">
                 <input type="number" name="materials[][total]" placeholder="Total (₹)" readonly>
                 <button type="button" class="remove-item-btn" onclick="removeRow(this)">Remove</button>
             `;
@@ -221,52 +227,72 @@
         }
 
         function removeRow(button) {
-            button.parentElement.remove();
+            button.closest(".item-row").remove();
+            updateTotals();
+        }
+
+        function updateTotal(input) {
+            const row = input.closest(".item-row");
+            const quantity = parseFloat(row.querySelector('[name="materials[][quantity]"]').value) || 0;
+            const rate = parseFloat(row.querySelector('[name="materials[][rate]"]').value) || 0;
+            const total = quantity * rate;
+            row.querySelector('[name="materials[][total]"]').value = total.toFixed(2);
+            updateTotals();
         }
 
         function updateTotals() {
+            let totalCost = 0;
             const rows = document.querySelectorAll(".item-row");
-            rows.forEach(row => {
-                const quantity = parseFloat(row.querySelector('input[name$="[quantity]"]').value) || 0;
-                const percentage = parseFloat(row.querySelector('input[name$="[percentage]"]').value) || 0;
-                const totalInput = row.querySelector('input[name$="[total]"]');
-                const total = (quantity * percentage) / 100;
-                totalInput.value = total.toFixed(2);
+
+            rows.forEach((row) => {
+                const total = parseFloat(row.querySelector('[name="materials[][total]"]').value) || 0;
+                totalCost += total;
             });
+
+            document.getElementById("totalCost").textContent = totalCost.toFixed(2);
         }
 
         function submitMaterialsForm(event) {
             event.preventDefault();
-            const tableContainer = document.getElementById("materials-table-container");
-            const tableBody = document.getElementById("materials-table-body");
-            tableBody.innerHTML = "";
+            alert('Form submitted successfully!');
+        }
 
-            const rows = document.querySelectorAll(".item-row");
-            rows.forEach(row => {
-                const nameSelect = row.querySelector('select[name$="[name]"]');
-                const customNameInput = row.querySelector('input[name$="[customName]"]');
-                const subcategory = row.querySelector('input[name$="[subcategory]"]').value;
-                const name = nameSelect.value === "OTHER" ? customNameInput.value : nameSelect.value;
+        function handleSquareFootageChange(selectElement) {
+            const quantityInputs = document.querySelectorAll('[name="materials[][quantity]"]');
+            const rateInputs = document.querySelectorAll('[name="materials[][rate]"]');
+            const totalInputs = document.querySelectorAll('[name="materials[][total]"]');
+            const customSquareFootageInput = document.getElementById("customSquareFootage");
 
-                const quantity = row.querySelector('input[name$="[quantity]"]').value;
-                const percentage = row.querySelector('input[name$="[percentage]"]').value;
-                const total = row.querySelector('input[name$="[total]"]').value;
+            const sqFootage = selectElement.value;
 
-                const tableRow = document.createElement("tr");
-                tableRow.innerHTML = `
-                    <td>${name}</td>
-                     <td>${subcategory}</td>
-                    <td>${quantity}</td>
-                    <td>${percentage}</td>
-                    <td>${total}</td>
-                `;
-                tableBody.appendChild(tableRow);
-            });
+            // Hide custom square footage input if not selected
+            if (sqFootage === "other") {
+                customSquareFootageInput.style.display = "block";
+            } else {
+                customSquareFootageInput.style.display = "none";
+            }
 
-            tableContainer.style.display = "block";
+            // Update quantity, rate, and total based on selected square footage
+            if (sqFootage === "100") {
+                quantityInputs.forEach(input => input.value = 80);
+                rateInputs.forEach(input => input.value = 5);
+                totalInputs.forEach(input => input.value = (80 * 5).toFixed(2));
+            } else if (sqFootage === "500") {
+                quantityInputs.forEach(input => input.value = 85);
+                rateInputs.forEach(input => input.value = 5);
+                totalInputs.forEach(input => input.value = (85 * 5).toFixed(2));
+            } else if (sqFootage === "1000") {
+                quantityInputs.forEach(input => input.value = 90);
+                rateInputs.forEach(input => input.value = 6);
+                totalInputs.forEach(input => input.value = (90 * 6).toFixed(2));
+            } else if (sqFootage === "1500") {
+                quantityInputs.forEach(input => input.value = 95);
+                rateInputs.forEach(input => input.value = 8);
+                totalInputs.forEach(input => input.value = (95 * 8).toFixed(2));
+            }
+            updateTotals();
         }
     </script>
-
 </body>
 
 </html>
